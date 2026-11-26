@@ -56,7 +56,27 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
   isLoading = false;
   activeFilter: 'ACTIVE' | 'EXPIRED' | 'ALL' = 'ALL';
   searchQuery = '';
-  errorMessage = '';
+  private _errorMessage = '';
+  private alertTimer: ReturnType<typeof setTimeout> | null = null;
+
+  get errorMessage(): string {
+    return this._errorMessage;
+  }
+
+  set errorMessage(val: string) {
+    this._errorMessage = val;
+    if (this.alertTimer) {
+      clearTimeout(this.alertTimer);
+      this.alertTimer = null;
+    }
+    if (this._errorMessage) {
+      this.alertTimer = setTimeout(() => {
+        this._errorMessage = '';
+        this.alertTimer = null;
+        this.triggerRender();
+      }, 4000);
+    }
+  }
   copiedKey = signal<string>('');
   private copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -312,6 +332,10 @@ export class AccountWarrantyComponent implements OnInit, OnDestroy {
     if (this.copyResetTimer) {
       clearTimeout(this.copyResetTimer);
       this.copyResetTimer = null;
+    }
+    if (this.alertTimer) {
+      clearTimeout(this.alertTimer);
+      this.alertTimer = null;
     }
     this.warrantiesReqSub?.unsubscribe();
     this.sub.unsubscribe();

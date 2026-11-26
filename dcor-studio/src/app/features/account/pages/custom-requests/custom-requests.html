@@ -1291,8 +1291,10 @@
 
 
 
-          <!-- 4. CHI TIẾT TÀI CHÍNH & ĐẶT CỌC (ĐỒNG BỘ Ở MỌI TAB) -->
-          <ng-container *ngTemplateOutlet="financeSummaryTpl"></ng-container>
+          <!-- 4. CHI TIẾT TÀI CHÍNH & ĐẶT CỌC (Ẩn ở bước Khảo sát) -->
+          <ng-container *ngIf="activeCustomViewingStep !== 1">
+            <ng-container *ngTemplateOutlet="financeSummaryTpl"></ng-container>
+          </ng-container>
         </ng-template>
 
       </div>

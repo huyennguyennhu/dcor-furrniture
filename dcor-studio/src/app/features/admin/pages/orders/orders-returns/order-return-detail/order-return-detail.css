@@ -4133,6 +4133,9 @@
 }
 
 .receipt-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-family: monospace;
   font-size: 13.5px;
   color: var(--accent, #765337);
@@ -4140,6 +4143,14 @@
   padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid #E5E7EB;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.receipt-code:hover {
+  background: #F3EBE4;
+  border-color: var(--accent, #765337);
+  box-shadow: 0 1px 4px rgba(118, 83, 55, 0.15);
 }
 
 .receipt-status-badge {

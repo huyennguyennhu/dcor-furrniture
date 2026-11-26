@@ -22,6 +22,10 @@ import {
   Upload, 
   AlertCircle,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   ExternalLink,
   Copy,
   Check,
@@ -46,6 +50,8 @@ import {
   CUSTOM_STATUS_MAP, 
   StatusMeta 
 } from '../../../../core/services/custom-request.service';
+import { OrdersService } from '../orders/services/orders.service';
+import { OrderV2 } from '../orders/models/order.model';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -75,6 +81,10 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
     Upload,
     AlertCircle,
     ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
     ExternalLink,
     Copy,
     Check,
@@ -96,6 +106,10 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
   requests: CustomRequest[] = [];
   selectedTab: 'ALL' | CustomRequestStatus = 'ALL';
   searchQuery: string = '';
+
+  // Pagination
+  currentPage = 1;
+  pageSize = 20;
 
   // Dropdown filter states
   activeDropdown: 'NONE' | 'status' | 'architect' | 'category' | 'price' = 'NONE';
@@ -357,8 +371,48 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
 
   constructor(
     public customRequestService: CustomRequestService,
+    private ordersService: OrdersService,
     private router: Router
   ) {}
+
+  getLinkedOrder(req?: CustomRequest): OrderV2 | undefined {
+    const target = req || this.activeRequest;
+    if (!target) return undefined;
+    if (target.generatedOrderNumber) {
+      return this.ordersService.getOrderById(target.generatedOrderNumber);
+    }
+    if (target.code) {
+      return this.ordersService.orders.find(o => 
+        o.orderNumber?.includes(target.code.replace('CR-', 'CUST-')) ||
+        o.customRequestId === target.code
+      );
+    }
+    return undefined;
+  }
+
+  isLinkedOrderDelivered(req?: CustomRequest): boolean {
+    const target = req || this.activeRequest;
+    if (!target) return false;
+    if (target.status === 'COMPLETED') return true;
+    const order = this.getLinkedOrder(target);
+    if (!order) return false;
+    return order.status === 'DELIVERED' || order.status === 'COMPLETED';
+  }
+
+  getLinkedOrderStatusLabel(req?: CustomRequest): string {
+    const order = this.getLinkedOrder(req);
+    if (!order) return 'Chưa tạo đơn hàng';
+    switch (order.status) {
+      case 'DELIVERED': return 'Đã giao hàng';
+      case 'COMPLETED': return 'Đã hoàn tất';
+      case 'SHIPPED': return 'Đang giao hàng';
+      case 'READY_TO_SHIP': return 'Sẵn sàng xuất kho';
+      case 'PROCESSING': return 'Đang chuẩn bị hàng';
+      case 'CONFIRMED': return 'Đã xác nhận';
+      case 'PENDING': return 'Chờ xác nhận';
+      default: return String(order.status);
+    }
+  }
 
   ngOnInit(): void {
     this.sub = this.customRequestService.requests$.subscribe(items => {
@@ -418,11 +472,13 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
     this.selectedStatus = status;
     this.selectedTab = status;
     this.activeDropdown = 'NONE';
+    this.currentPage = 1;
   }
 
   selectTab(tab: 'ALL' | CustomRequestStatus): void {
     this.selectedTab = tab;
     this.selectedStatus = tab;
+    this.currentPage = 1;
   }
 
   get selectedArchitectLabel(): string {
@@ -460,6 +516,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
     this.selectedPriceRange = 'ALL';
     this.searchQuery = '';
     this.activeDropdown = 'NONE';
+    this.currentPage = 1;
   }
 
   // Sorting
@@ -470,6 +527,7 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
       this.sortColumn = column;
       this.sortDirection = 'asc';
     }
+    this.currentPage = 1;
   }
 
   get filteredRequests(): CustomRequest[] {
@@ -544,6 +602,51 @@ export class AdminCustomRequestsComponent implements OnInit, OnDestroy {
       }
       return this.sortDirection === 'asc' ? diff : -diff;
     });
+  }
+
+  // --- PAGINATION ---
+  get totalItems(): number {
+    return this.filteredRequests.length;
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.totalItems / this.pageSize) || 1;
+  }
+
+  get paginatedRequests(): CustomRequest[] {
+    const safePage = Math.min(Math.max(1, this.currentPage), this.totalPages);
+    const start = (safePage - 1) * this.pageSize;
+    return this.filteredRequests.slice(start, start + this.pageSize);
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages || page === this.currentPage) return;
+    this.currentPage = page;
+  }
+
+  getVisiblePages(): number[] {
+    const pages: number[] = [];
+    const maxVisible = 5;
+    let start = Math.max(1, this.currentPage - 2);
+    let end = Math.min(this.totalPages, start + maxVisible - 1);
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  }
+
+  getStartIndex(): number {
+    if (this.totalItems === 0) return 0;
+    const safePage = Math.min(Math.max(1, this.currentPage), this.totalPages);
+    return (safePage - 1) * this.pageSize + 1;
+  }
+
+  getEndIndex(): number {
+    const safePage = Math.min(Math.max(1, this.currentPage), this.totalPages);
+    return Math.min(safePage * this.pageSize, this.totalItems);
   }
 
   getStatusMeta(status: CustomRequestStatus): StatusMeta {

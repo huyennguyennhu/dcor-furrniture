@@ -6,6 +6,7 @@ import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { LucideAngularModule, Search, MapPin, CreditCard, Check, CheckCircle2, AlertCircle, Package, AlertTriangle, Clock, Image as ImageIcon, Plus, X, ChevronDown, Eye, Sparkles, Star, ShieldCheck, Copy, Truck, FileText, CircleX, RotateCcw } from 'lucide-angular';
 import { OrderReviewModalComponent, ReviewModalItem } from '../../../../shared/components/order-review-modal/order-review-modal';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
+import { CustomDropdownComponent } from '../../../../shared/components/custom-dropdown/custom-dropdown';
 import { OrderService, OrderSummary, OrderDetail } from '../../../../core/services/order.service';
 import { CartService } from '../../../../core/services/cart.service';
 import { AuthService } from '../../../../core/services/auth.service';
@@ -23,7 +24,7 @@ export interface OrderTimelineStep {
 @Component({
   selector: 'app-my-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, GuestPhoneBannerComponent, OrderReviewModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, GuestPhoneBannerComponent, OrderReviewModalComponent, CustomDropdownComponent],
   templateUrl: './my-orders.html',
   styleUrls: ['./my-orders.css']
 })
@@ -142,6 +143,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   // Toast thông báo
   toastMessage = '';
   toastType: 'success' | 'error' = 'success';
+  private toastTimer: ReturnType<typeof setTimeout> | null = null;
   private sub = new Subscription();
 
   // Thanh test trạng thái đơn hàng (Đồng bộ với Admin)
@@ -1738,11 +1740,16 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   }
 
   showToast(message: string, type: 'success' | 'error' = 'success'): void {
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+    }
     this.toastMessage = message;
     this.toastType = type;
     this.cdr.markForCheck();
-    setTimeout(() => {
+    this.toastTimer = setTimeout(() => {
       this.toastMessage = '';
+      this.toastTimer = null;
       this.cdr.markForCheck();
     }, 4000);
   }
@@ -1909,6 +1916,10 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     if (this.autoConfirmCheckInterval) {
       clearInterval(this.autoConfirmCheckInterval);
       this.autoConfirmCheckInterval = null;
+    }
+    if (this.toastTimer) {
+      clearTimeout(this.toastTimer);
+      this.toastTimer = null;
     }
     this.clearOrderTimer();
     this.sub.unsubscribe();

@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, Output, OnInit, OnChanges, SimpleChange
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
-import { CartService, CartItem } from '../../../core/services/cart.service';
+import { CartService, CartItem, MAX_ITEM_QUANTITY } from '../../../core/services/cart.service';
 import { PromotionService, Promotion, AppliedPromotion, formatDiscountBadgeText } from '../../../core/services/promotion.service';
 import { WishlistService } from '../../../core/services/wishlist.service';
 import { applyImageErrorFallback, resolveNextImageFallback, PLACEHOLDER_PRODUCT_IMAGE } from '../../utils/image-fallback.util';
@@ -115,6 +115,10 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
   cartItems: CartItem[] = [];
   isLoading = false;
   selectedItemIds: Set<string> = new Set();
+
+  trackByCartItem(_index: number, item: CartItem): string {
+    return item.id || item.variantId;
+  }
 
   // Khuyến mãi / Vouchers từ hệ thống thực tế (đồng bộ qua PromotionService)
   systemPromotions: Promotion[] = [];
@@ -585,6 +589,7 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
     if (this.toastTimer) {
       clearTimeout(this.toastTimer);
     }
+    this.cdr.detectChanges();
     this.toastTimer = setTimeout(() => {
       this.toastMessage = null;
       this.cdr.detectChanges();
@@ -593,8 +598,15 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
 
   // --- Logic Thay đổi Số lượng ---
   increaseQuantity(item: CartItem) {
-    if (item.availableStock !== undefined && item.quantity >= item.availableStock) {
-      this.showToast(`Chỉ còn ${item.availableStock} sản phẩm trong kho.`, 'warning');
+    const maxAllowed = item.availableStock !== undefined
+      ? Math.min(item.availableStock, MAX_ITEM_QUANTITY)
+      : MAX_ITEM_QUANTITY;
+
+    if (item.quantity >= maxAllowed) {
+      const msg = (item.availableStock !== undefined && item.availableStock < MAX_ITEM_QUANTITY)
+        ? `Chỉ còn ${item.availableStock} sản phẩm trong kho.`
+        : `Mỗi loại sản phẩm chỉ được đặt tối đa ${MAX_ITEM_QUANTITY} chiếc.`;
+      this.showToast(msg, 'warning');
       return;
     }
 
@@ -638,16 +650,17 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
   confirmRemove() {
     if (!this.itemToDelete) return;
     const id = this.itemToDelete.id;
+    this.cancelDelete();
+    this.selectedItemIds.delete(id);
+    this.showToast('Đã xóa sản phẩm khỏi giỏ hàng.', 'success');
+
     this.cartService.removeFromCart(id).subscribe({
       next: () => {
-        this.selectedItemIds.delete(id);
-        this.showToast('Đã xóa sản phẩm khỏi giỏ hàng.', 'success');
-        this.cancelDelete();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         const msg = err.error?.message || 'Không thể xóa sản phẩm';
         this.showToast(msg, 'error');
-        this.cancelDelete();
       }
     });
   }
@@ -665,18 +678,22 @@ export class CartDrawerComponent implements OnInit, OnChanges, OnDestroy {
 
   confirmDeleteSelected() {
     const ids = Array.from(this.selectedItemIds);
-    if (ids.length === 0) return;
+    this.isBatchDeleteModalOpen = false;
+    if (ids.length === 0) {
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.selectedItemIds.clear();
+    this.showToast(`Đã xóa ${ids.length} sản phẩm được chọn.`, 'success');
 
     this.cartService.removeMultiple(ids).subscribe({
       next: () => {
-        this.selectedItemIds.clear();
-        this.showToast(`Đã xóa ${ids.length} sản phẩm được chọn.`, 'success');
-        this.isBatchDeleteModalOpen = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         const msg = err.error?.message || 'Không thể xóa các sản phẩm được chọn';
         this.showToast(msg, 'error');
-        this.isBatchDeleteModalOpen = false;
       }
     });
   }

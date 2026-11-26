@@ -42,6 +42,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
   private permSub?: Subscription;
   private ordersSub?: Subscription;
   private customSub?: Subscription;
+  private returnsSub?: Subscription;
   pendingOrdersCount = 0;
   pendingCustomCount = 0;
   pendingReturnsCount = 0;
@@ -217,10 +218,14 @@ export class AdminSidebar implements OnInit, OnDestroy {
 
     // Lắng nghe và đồng bộ số lượng đơn hàng chờ xác nhận PENDING
     this.pendingOrdersCount = this.ordersService.getPendingOrdersCount();
-    this.pendingReturnsCount = this.returnsService.getAll().filter(r => r.status === 'PENDING' || r.status === 'REVIEWING').length;
+    this.pendingReturnsCount = this.returnsService.getPendingReturnsCount();
     this.ordersSub = this.ordersService.orders$.subscribe(orders => {
       this.pendingOrdersCount = (orders || []).filter(o => o.status === 'PENDING').length;
-      this.pendingReturnsCount = this.returnsService.getAll().filter(r => r.status === 'PENDING' || r.status === 'REVIEWING').length;
+    });
+
+    // Lắng nghe số lượng yêu cầu Đổi trả chờ xác nhận PENDING / REVIEWING
+    this.returnsSub = this.returnsService.returns$.subscribe(returns => {
+      this.pendingReturnsCount = (returns || []).filter(r => r.status === 'PENDING' || r.status === 'REVIEWING').length;
     });
 
     // Lắng nghe số lượng yêu cầu Custom chờ xử lý PENDING_REVIEW
@@ -234,6 +239,7 @@ export class AdminSidebar implements OnInit, OnDestroy {
     this.permSub?.unsubscribe();
     this.ordersSub?.unsubscribe();
     this.customSub?.unsubscribe();
+    this.returnsSub?.unsubscribe();
   }
 
   handleLogout(): void {

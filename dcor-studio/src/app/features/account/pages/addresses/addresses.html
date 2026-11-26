@@ -35,10 +35,10 @@
           </div>
           <h3 class="empty-title">Chưa có địa chỉ giao hàng nào</h3>
           <p class="empty-desc">Bạn chưa thêm địa chỉ nhận hàng nào vào tài khoản. Hãy tạo địa chỉ để nhận nội thất Dcor tận nhà.</p>
-          <button type="button" class="btn btn-primary" (click)="openCreateModal()">
+          <!-- <button type="button" class="btn btn-primary" (click)="openCreateModal()">
             <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
             <span>Thêm địa chỉ ngay</span>
-          </button>
+          </button> -->
         </div>
 
         <!-- Addresses List (Each address is one row) -->
@@ -142,10 +142,17 @@
         <div class="form-row form-grid-2">
           <div class="form-group" [class.has-error]="formErrors.province">
             <label class="form-label">Tỉnh / Thành phố <span class="required">*</span></label>
-            <select class="form-control" [class.is-invalid]="formErrors.province" [(ngModel)]="formData.province" (change)="onProvinceChange()">
-              <option value="">-- Chọn Tỉnh / Thành phố --</option>
-              <option *ngFor="let p of provinces" [value]="p">{{ p }}</option>
-            </select>
+            <app-custom-dropdown
+              [(ngModel)]="formData.province"
+              (ngModelChange)="onProvinceChange()"
+              name="addrProvince"
+              [options]="provinces"
+              [invalid]="!!formErrors.province"
+              placeholder="-- Chọn Tỉnh / Thành phố --"
+              [searchable]="true"
+              searchPlaceholder="Tìm Tỉnh / Thành phố..."
+              emptyText="Không tìm thấy Tỉnh / Thành phố phù hợp">
+            </app-custom-dropdown>
             <div *ngIf="formErrors.province" class="field-error-msg">
               <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
               <span>{{ formErrors.province }}</span>
@@ -154,10 +161,16 @@
 
           <div class="form-group">
             <label class="form-label">Phường / Xã / Thị trấn</label>
-            <select class="form-control" [(ngModel)]="formData.ward" [disabled]="!formData.province">
-              <option value="">-- Chọn Phường / Xã --</option>
-              <option *ngFor="let w of wards" [value]="w">{{ w }}</option>
-            </select>
+            <app-custom-dropdown
+              [(ngModel)]="formData.ward"
+              name="addrWard"
+              [options]="wards"
+              [disabled]="!formData.province"
+              placeholder="-- Chọn Phường / Xã --"
+              [searchable]="true"
+              searchPlaceholder="Tìm Phường / Xã..."
+              emptyText="Không tìm thấy Phường / Xã phù hợp">
+            </app-custom-dropdown>
           </div>
         </div>
 

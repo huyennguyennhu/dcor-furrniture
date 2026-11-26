@@ -7,7 +7,7 @@ import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { CatalogProduct } from '../../../../shared/models/catalog.model';
 import { CartDrawerComponent } from '../../../../shared/components/cart-drawer/cart-drawer';
-import { CartService } from '../../../../core/services/cart.service';
+import { CartService, CartItem } from '../../../../core/services/cart.service';
 import { CustomerService, CustomerNotification } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { WishlistService } from '../../../../core/services/wishlist.service';
@@ -63,6 +63,9 @@ export class Header implements OnInit, OnDestroy {
   isStoreCategoriesLoading = true;
   storeCategories: StoreCategory[] = [];
   cartCount = 0;
+  isCartPreviewOpen = false;
+  cartPreviewItems: CartItem[] = [];
+  private cartCloseTimer: any = null;
   wishlistCount = 0;
   unreadNotificationCount = 0;
   isNotificationDropdownOpen = false;
@@ -152,6 +155,7 @@ export class Header implements OnInit, OnDestroy {
       this.closeMobileMenu();
       this.isMobileSearchOpen = false;
       this.isNotificationDropdownOpen = false;
+      this.isCartPreviewOpen = false;
       this.closeGuestUserMenu();
       this.closeUserMenu();
       this.syncUser();
@@ -193,6 +197,10 @@ export class Header implements OnInit, OnDestroy {
       clearTimeout(this.shopHoverTimeout);
       this.shopHoverTimeout = null;
     }
+    if (this.cartCloseTimer) {
+      clearTimeout(this.cartCloseTimer);
+      this.cartCloseTimer = null;
+    }
     if (typeof document !== 'undefined') {
       document.body.style.overflow = '';
     }
@@ -205,6 +213,8 @@ export class Header implements OnInit, OnDestroy {
     });
     this.cartService.cart$.subscribe(items => {
       this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
+      this.cartPreviewItems = (items || []).slice(0, 3);
+      this.cdr.markForCheck();
     });
     this.wishlistService.wishlist$.subscribe(items => {
       this.wishlistCount = items.length;
@@ -420,6 +430,10 @@ export class Header implements OnInit, OnDestroy {
       clearTimeout(this.shopHoverTimeout);
       this.shopHoverTimeout = null;
     }
+    if (this.cartCloseTimer) {
+      clearTimeout(this.cartCloseTimer);
+      this.cartCloseTimer = null;
+    }
     this.isShopHovered = false;
     this.shopMenuOpen = false;
     this.cdr.markForCheck();
@@ -605,23 +619,62 @@ export class Header implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  toggleCartDrawer() {
-    this.isCartDrawerOpen = !this.isCartDrawerOpen;
-    if (this.isCartDrawerOpen) {
-      this.cartService.loadCart().subscribe(items => {
-        this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
-        this.cdr.markForCheck();
-      });
+  onCartIconMouseEnter(): void {
+    if (this.isCartDrawerOpen) return;
+    if (this.cartCloseTimer) {
+      clearTimeout(this.cartCloseTimer);
+      this.cartCloseTimer = null;
     }
+    this.cartPreviewItems = (this.cartService.currentCart || []).slice(0, 3);
+    this.isCartPreviewOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  onCartIconMouseLeave(): void {
+    if (this.cartCloseTimer) clearTimeout(this.cartCloseTimer);
+    this.cartCloseTimer = setTimeout(() => {
+      this.isCartPreviewOpen = false;
+      this.cdr.markForCheck();
+    }, 250);
+  }
+
+  onCartDropdownMouseEnter(): void {
+    if (this.cartCloseTimer) {
+      clearTimeout(this.cartCloseTimer);
+      this.cartCloseTimer = null;
+    }
+    this.isCartPreviewOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  onCartDropdownMouseLeave(): void {
+    if (this.cartCloseTimer) clearTimeout(this.cartCloseTimer);
+    this.cartCloseTimer = setTimeout(() => {
+      this.isCartPreviewOpen = false;
+      this.cdr.markForCheck();
+    }, 200);
+  }
+
+  openCartDrawerFromPreview(): void {
+    this.isCartPreviewOpen = false;
+    if (this.cartCloseTimer) {
+      clearTimeout(this.cartCloseTimer);
+      this.cartCloseTimer = null;
+    }
+    this.isCartDrawerOpen = true;
+    this.cdr.markForCheck();
+  }
+
+  toggleCartDrawer() {
+    this.isCartPreviewOpen = false;
+    this.isCartDrawerOpen = !this.isCartDrawerOpen;
+    this.cdr.markForCheck();
   }
 
   @HostListener('window:dcor-open-cart')
   onOpenCartFromGlobal(): void {
+    this.isCartPreviewOpen = false;
     this.isCartDrawerOpen = true;
-    this.cartService.loadCart().subscribe(items => {
-      this.cartCount = items.reduce((count, item) => count + item.quantity, 0);
-      this.cdr.markForCheck();
-    });
     this.cdr.markForCheck();
   }
 

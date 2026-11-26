@@ -220,7 +220,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   // Pagination
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 20;
 
   // Toast
   showToast = false;

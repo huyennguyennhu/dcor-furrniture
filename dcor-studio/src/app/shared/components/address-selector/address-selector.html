@@ -162,7 +162,7 @@
 
           <!-- Email nhận thông báo -->
           <div class="form-group full-width" *ngIf="showEmail">
-            <label>Email nhận thông báo (tùy chọn)</label>
+            <label>Email</label>
             <input type="email" [(ngModel)]="newAddress.email" name="naEmail" placeholder="hoten@gmail.com"
               class="custom-input" />
           </div>
@@ -170,19 +170,30 @@
           <!-- Tỉnh / Thành phố -->
           <div class="form-group">
             <label>Tỉnh / Thành phố <span class="req">*</span></label>
-            <select [(ngModel)]="newAddress.province" (change)="onProvinceChange()" name="naProvince"
-              class="custom-select">
-              <option *ngFor="let p of provinces" [value]="p">{{ p }}</option>
-            </select>
+            <app-custom-dropdown
+              [(ngModel)]="newAddress.province"
+              (ngModelChange)="onProvinceChange()"
+              name="naProvince"
+              [options]="provinces"
+              placeholder="-- Chọn Tỉnh / Thành phố --"
+              [searchable]="true"
+              searchPlaceholder="Tìm Tỉnh / Thành phố..."
+              emptyText="Không tìm thấy Tỉnh / Thành phố phù hợp">
+            </app-custom-dropdown>
           </div>
 
           <!-- Phường / Xã -->
           <div class="form-group">
             <label>Phường / Xã / Thị trấn <span class="req">*</span></label>
-            <select [(ngModel)]="newAddress.ward" name="naWard" class="custom-select">
-              <option value="" disabled>-- Chọn Phường / Xã --</option>
-              <option *ngFor="let w of wards" [value]="w">{{ w }}</option>
-            </select>
+            <app-custom-dropdown
+              [(ngModel)]="newAddress.ward"
+              name="naWard"
+              [options]="wards"
+              placeholder="-- Chọn Phường / Xã --"
+              [searchable]="true"
+              searchPlaceholder="Tìm Phường / Xã..."
+              emptyText="Không tìm thấy Phường / Xã phù hợp">
+            </app-custom-dropdown>
           </div>
 
           <!-- Số nhà, tên đường -->

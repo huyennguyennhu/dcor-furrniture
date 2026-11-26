@@ -231,12 +231,6 @@
             <lucide-angular [img]="icons.Package" size="18" class="text-accent"></lucide-angular>
             <h3>Yêu cầu đổi trả</h3>
           </div>
-          <a class="order-link-ref" 
-             [routerLink]="['/admin/orders', returnReq.orderNumber]" 
-             title="Xem chi tiết đơn hàng gốc">
-            #{{ returnReq.orderNumber }}
-            <lucide-angular [img]="icons.ExternalLink" size="12"></lucide-angular>
-          </a>
         </div>
 
         <div class="v2-card-body">
@@ -1327,14 +1321,16 @@
 
           <!-- Thông báo Phiếu Nhập Kho / Xuất Kho tự động phát hành sau QC (Chỉ hiện khi đã qua QC) -->
           <div *ngIf="currentStepIndex >= 4 && returnReq.qcReport?.inboundOrderCode" class="qc-inbound-receipt-banner" [class.is-scrap-banner]="returnReq.qcReport?.restockOption === 'SCRAP'">
-            <div class="receipt-banner-left">
-              <div class="receipt-banner-icon" [class.is-scrap]="returnReq.qcReport?.restockOption === 'SCRAP'">
-                <lucide-angular [img]="returnReq.qcReport?.restockOption === 'SCRAP' ? icons.FileText : icons.Package" size="18"></lucide-angular>
-              </div>
-              <div class="receipt-banner-info">
+            <div class="receipt-banner-left" style="width: 100%;">
+              <div class="receipt-banner-info" style="width: 100%;">
                 <div class="receipt-banner-title">
                   <span class="receipt-type-label">{{ returnReq.qcReport?.restockOption === 'SCRAP' ? 'Lệnh điều chuyển xử lý phế phẩm / bảo hành:' : 'Lệnh nhập kho thu hồi tự động:' }}</span>
-                  <strong class="receipt-code">{{ returnReq.qcReport?.inboundOrderCode }}</strong>
+                  <strong class="receipt-code">
+                    <a [routerLink]="['/admin/inventory/orders']" title="Xem chi tiết tại Quản lý kho" style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+                      <span>{{ returnReq.qcReport?.inboundOrderCode }}</span>
+                      <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
+                    </a>
+                  </strong>
                   <span class="receipt-status-badge" [class.badge-completed]="returnReq.qcReport?.inboundOrderStatus === 'Đã nhập kho' || returnReq.qcReport?.inboundOrderStatus === 'COMPLETED' || returnReq.qcReport?.inboundOrderStatus === 'Đã nhập kho Outlet'">
                     {{ returnReq.qcReport?.inboundOrderStatus || 'Đã nhập kho' }}
                   </span>
@@ -1344,10 +1340,6 @@
                 </p>
               </div>
             </div>
-            <a [routerLink]="['/admin/inventory/orders']" class="receipt-view-link" title="Xem chi tiết tại Quản lý kho">
-              <span>Xem tại Kho</span>
-              <lucide-angular [img]="icons.ExternalLink" size="14"></lucide-angular>
-            </a>
           </div>
         </div>
       </div>
@@ -1359,12 +1351,6 @@
             <lucide-angular [img]="icons.FileText" size="18" class="text-accent"></lucide-angular>
             <h3>Đơn hàng liên kết</h3>
           </div>
-          <a class="order-link-ref" 
-             [routerLink]="['/admin/orders', returnReq.orderNumber]" 
-             title="Xem chi tiết đơn hàng gốc">
-            #{{ returnReq.orderNumber }}
-            <lucide-angular [img]="icons.ExternalLink" size="12"></lucide-angular>
-          </a>
         </div>
         <div class="v2-card-body">
           <div class="info-list-rows">
@@ -1380,12 +1366,6 @@
               <span class="info-lbl">Giá trị sản phẩm:</span>
               <span class="info-val" style="color: var(--accent-color, #c5a880); font-weight: 700;">{{ formatVND(returnReq.item.price * returnReq.item.quantity) }}</span>
             </div>
-          </div>
-          <div style="margin-top: 14px;">
-            <a [routerLink]="['/admin/orders', returnReq.orderNumber]" class="v2-btn-secondary" style="width: 100%; justify-content: center; text-decoration: none; display: flex; align-items: center; gap: 8px;">
-              <lucide-angular [img]="icons.Eye" size="14"></lucide-angular>
-              <span>Xem chi tiết đơn hàng gốc</span>
-            </a>
           </div>
         </div>
       </div>

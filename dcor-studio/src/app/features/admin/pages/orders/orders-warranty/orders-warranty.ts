@@ -87,7 +87,7 @@ export class OrdersWarrantyComponent implements OnInit {
 
   // Pagination
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 20;
 
   categoryOptions = [
     { label: 'Tất cả phân loại', value: 'ALL' },

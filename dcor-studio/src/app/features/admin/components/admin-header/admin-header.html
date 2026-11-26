@@ -30,50 +30,94 @@
         aria-label="Thông báo quản trị"
         (click)="toggleNotifMenu($event)">
         <app-icon name="Bell" size="20"></app-icon>
-        <span *ngIf="totalNotifications() > 0" class="notif-badge">
-          {{ totalNotifications() > 99 ? '99+' : totalNotifications() }}
+        <span *ngIf="unseenCount > 0" class="notif-badge">
+          {{ unseenCount > 99 ? '99+' : unseenCount }}
         </span>
       </button>
 
-      <div *ngIf="isNotifMenuOpen" class="notif-dropdown" role="menu">
+      <div *ngIf="isNotifMenuOpen" class="notif-dropdown" role="menu" (click)="$event.stopPropagation()">
+        <!-- Header -->
         <div class="notif-dropdown-header">
-          <span>Thông báo mới</span>
-          <span class="notif-header-count" *ngIf="totalNotifications() > 0">{{ totalNotifications() }}</span>
+          <div class="notif-header-left">
+            <span>Thông báo quản trị</span>
+            <span class="notif-header-count" *ngIf="unseenCount > 0">{{ unseenCount }}</span>
+          </div>
+          <!-- <button
+            *ngIf="activeNotifTab === 'UNSEEN' && unseenCount > 0"
+            type="button"
+            class="notif-mark-all-btn"
+            (click)="markAllAsSeen($event)">
+            Đọc tất cả
+          </button> -->
         </div>
 
-        <button
-          *ngIf="adminConsultationService.pendingCount() > 0"
-          type="button"
-          class="notif-item"
-          (click)="openNotificationsTarget('/admin/appointments/requests')">
-          <span class="notif-item-icon consult">
-            <app-icon name="CalendarDays" size="16"></app-icon>
-          </span>
-          <span class="notif-item-content">
-            <span class="notif-item-title">Yêu cầu tư vấn chờ duyệt</span>
-            <span class="notif-item-desc">Có <strong>{{ adminConsultationService.pendingCount() }}</strong> yêu cầu tư vấn mới từ khách hàng</span>
-          </span>
-          <span class="notif-item-pill">{{ adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount() }}</span>
-        </button>
-
-        <button
-          *ngIf="chatUnreadService.totalUnread() > 0"
-          type="button"
-          class="notif-item"
-          (click)="openNotificationsTarget('/admin/chat')">
-          <span class="notif-item-icon chat">
-            <app-icon name="MessagesSquare" size="16"></app-icon>
-          </span>
-          <span class="notif-item-content">
-            <span class="notif-item-title">Tin nhắn khách hàng</span>
-            <span class="notif-item-desc">Có <strong>{{ chatUnreadService.totalUnread() }}</strong> tin nhắn chưa đọc</span>
-          </span>
-          <span class="notif-item-pill">{{ chatUnreadService.totalUnread() > 99 ? '99+' : chatUnreadService.totalUnread() }}</span>
-        </button>
-
-        <div *ngIf="totalNotifications() === 0" class="notif-empty">
-          Hiện chưa có thông báo mới nào.
+        <!-- 2 Tabs: Chưa xem | Đã xem -->
+        <div class="notif-tabs-bar">
+          <button
+            type="button"
+            class="notif-tab-btn"
+            [class.active]="activeNotifTab === 'UNSEEN'"
+            (click)="setNotifTab('UNSEEN', $event)">
+            <span>Chưa xem</span>
+            <span class="notif-tab-badge">{{ unseenCount }}</span>
+          </button>
+          <button
+            type="button"
+            class="notif-tab-btn"
+            [class.active]="activeNotifTab === 'SEEN'"
+            (click)="setNotifTab('SEEN', $event)">
+            <span>Đã xem</span>
+            <span class="notif-tab-badge seen">{{ seenCount }}</span>
+          </button>
         </div>
+
+        <!-- Bộ lọc Nghiệp vụ theo tên tab cha -->
+        <div class="notif-module-filters">
+          <button
+            *ngFor="let mod of NOTIF_MODULES"
+            type="button"
+            class="notif-filter-chip"
+            [class.active]="selectedNotifModule === mod"
+            (click)="setNotifModule(mod, $event)">
+            {{ mod === 'ALL' ? 'Tất cả' : mod }}
+          </button>
+        </div>
+
+        <!-- Danh sách thông báo (mới -> cũ nhất, màu theo từng trang) -->
+        <div class="notif-list-scroll" *ngIf="filteredNotifications.length > 0; else emptyNotifTpl">
+          <div
+            *ngFor="let item of filteredNotifications"
+            class="notif-item"
+            [ngClass]="['source-' + item.sourceKey, item.isSeen ? 'is-seen' : 'is-unseen']"
+            (click)="onNotifClick(item)">
+            <span class="notif-item-icon" [ngClass]="item.sourceKey">
+              <app-icon [name]="item.icon" size="16"></app-icon>
+            </span>
+
+            <div class="notif-item-content">
+              <div class="notif-item-top-row">
+                <span class="notif-source-tag" [ngClass]="item.sourceKey">{{ item.sourcePage }}</span>
+                <span class="notif-item-time">{{ formatRelativeTime(item.createdAt) }}</span>
+              </div>
+              <span class="notif-item-title">{{ item.title }}</span>
+              <span class="notif-item-desc">{{ item.desc }}</span>
+            </div>
+
+            <button
+              *ngIf="!item.isSeen"
+              type="button"
+              class="notif-mark-read-dot"
+              title="Đánh dấu đã xem"
+              (click)="markAsSeen(item, $event)">
+            </button>
+          </div>
+        </div>
+
+        <ng-template #emptyNotifTpl>
+          <div class="notif-empty">
+            {{ activeNotifTab === 'UNSEEN' ? 'Không có thông báo chưa xem nào.' : 'Chưa có thông báo nào đã xem.' }}
+          </div>
+        </ng-template>
       </div>
     </div>
 

@@ -148,7 +148,7 @@
               (blur)="onQuantityBlur($event)"
               [disabled]="maxStock === 0"
               aria-label="Số lượng sản phẩm">
-            <button type="button" class="stepper-btn" (click)="increaseQuantity()" [disabled]="quantity >= maxStock || maxStock === 0" aria-label="Tăng số lượng">+</button>
+            <button type="button" class="stepper-btn" (click)="increaseQuantity()" [disabled]="quantity >= maxAllowedQuantity || maxStock === 0" aria-label="Tăng số lượng">+</button>
           </div>
         </div>
         <div class="stock-info-col">

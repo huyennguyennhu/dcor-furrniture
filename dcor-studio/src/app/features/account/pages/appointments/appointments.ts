@@ -30,6 +30,7 @@ import {
   DayOption
 } from '../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
 import { CustomerService, CustomerAppointment } from '../../../../core/services/customer.service';
+import { CustomDropdownComponent } from '../../../../shared/components/custom-dropdown/custom-dropdown';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription, skip } from 'rxjs';
 
@@ -42,7 +43,8 @@ import { Subscription, skip } from 'rxjs';
     RouterModule,
     LucideAngularModule,
     GuestPhoneBannerComponent,
-    ShowroomConsultationModalComponent
+    ShowroomConsultationModalComponent,
+    CustomDropdownComponent
   ],
   templateUrl: './appointments.html',
   styleUrls: ['./appointments.css']
@@ -73,8 +75,42 @@ export class AccountAppointmentsComponent implements OnInit, OnDestroy {
   filteredAppointments: CustomerAppointment[] = [];
   isLoading = false;
   activeFilter = 'ALL';
-  errorMessage = '';
-  successMessage = '';
+  private _errorMessage = '';
+  private _successMessage = '';
+  private alertTimer: ReturnType<typeof setTimeout> | null = null;
+
+  get errorMessage(): string {
+    return this._errorMessage;
+  }
+
+  set errorMessage(val: string) {
+    this._errorMessage = val;
+    this.scheduleAlertAutoClear();
+  }
+
+  get successMessage(): string {
+    return this._successMessage;
+  }
+
+  set successMessage(val: string) {
+    this._successMessage = val;
+    this.scheduleAlertAutoClear();
+  }
+
+  private scheduleAlertAutoClear(): void {
+    if (this.alertTimer) {
+      clearTimeout(this.alertTimer);
+      this.alertTimer = null;
+    }
+    if (this._errorMessage || this._successMessage) {
+      this.alertTimer = setTimeout(() => {
+        this._errorMessage = '';
+        this._successMessage = '';
+        this.alertTimer = null;
+        this.cdr.markForCheck();
+      }, 4000);
+    }
+  }
 
   isLoggedIn = false;
   isPhoneVerified = false;

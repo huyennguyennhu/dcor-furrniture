@@ -114,17 +114,35 @@ export class OrdersService {
 
   private mergeWithReplacementOrders(orders: OrderV2[]): OrderV2[] {
     const replacements = this.getReplacementOrders();
-    if (!replacements || replacements.length === 0) return orders;
-
     const merged = [...orders];
-    for (const ro of replacements) {
-      const idx = merged.findIndex(o => o.id === ro.id || o.orderNumber === ro.orderNumber);
-      if (idx >= 0) {
-        merged[idx] = ro;
-      } else {
-        merged.unshift(ro);
+
+    if (replacements && replacements.length > 0) {
+      for (const ro of replacements) {
+        const idx = merged.findIndex(o => o.id === ro.id || o.orderNumber === ro.orderNumber);
+        if (idx >= 0) {
+          merged[idx] = ro;
+        } else {
+          merged.unshift(ro);
+        }
       }
     }
+
+    // Luôn giữ và bảo toàn các đơn hàng may đo Custom Order đã tạo từ Custom Request
+    const currentOrders = this.ordersSubject.getValue();
+    for (const cur of currentOrders) {
+      if (cur.source === 'CUSTOM_ORDER' || (cur.orderNumber && (cur.orderNumber.includes('CUST-') || cur.orderNumber.includes('CR-')))) {
+        const idx = merged.findIndex(o => o.id === cur.id || o.orderNumber === cur.orderNumber);
+        if (idx < 0) {
+          merged.unshift(cur);
+        } else {
+          // Bảo toàn trạng thái đã thao tác tiến trình nếu DB chưa kịp cập nhật
+          if (cur.status !== 'PENDING' && merged[idx].status === 'PENDING') {
+            merged[idx] = { ...merged[idx], status: cur.status, delivery: cur.delivery, qcChecklist: cur.qcChecklist };
+          }
+        }
+      }
+    }
+
     return merged;
   }
 
@@ -797,6 +815,11 @@ export class OrdersService {
     this.ordersSubject.next([...orders]);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+      for (const o of orders) {
+        if (o.source === 'CUSTOM_ORDER' || (o.orderNumber && (o.orderNumber.includes('CUST-') || o.orderNumber.includes('CR-')))) {
+          this.saveReplacementOrder(o);
+        }
+      }
     } catch (_) {}
   }
 
@@ -1318,6 +1341,11 @@ export class OrdersService {
     order.status = 'PROCESSING';
     this.addAuditLog(order, staffName, 'Bắt đầu xử lý kho', 'In phiếu soạn hàng và đưa sản phẩm vào khu vực đóng gói.');
     this.save(orders);
+
+    this.http.patch(`${this.apiUrl}/${orderId}/start-processing`, { staffName }).subscribe({
+      error: (e) => console.error('Lỗi đồng bộ bắt đầu xử lý kho:', e)
+    });
+
     return true;
   }
 
@@ -1351,7 +1379,7 @@ export class OrdersService {
     order.qcChecklist = { ...checklist };
     this.save(orders);
 
-    this.http.patch(`${this.apiUrl}/${orderId}/qc`, { qcChecklist: checklist }).subscribe({
+    this.http.patch(`${this.apiUrl}/${orderId}/qc-checklist`, { qcChecklist: checklist }).subscribe({
       error: (e) => console.error('Lỗi cập nhật checklist QC:', e)
     });
 

@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { finalize, TimeoutError, timeout, Subscription } from 'rxjs';
 import { CatalogProduct } from '../../models/catalog.model';
 import { IconComponent } from '../icon/icon';
-import { CartService } from '../../../core/services/cart.service';
+import { CartService, MAX_ITEM_QUANTITY } from '../../../core/services/cart.service';
 import { WishlistService } from '../../../core/services/wishlist.service';
 import { PromotionService, formatDiscountBadgeText } from '../../../core/services/promotion.service';
 import { applyImageErrorFallback, resolveNextImageFallback, PLACEHOLDER_PRODUCT_IMAGE } from '../../utils/image-fallback.util';
@@ -700,7 +700,7 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
 
   increaseQuantity() {
     if (this.maxStock === 0) return;
-    if (this.quantity < this.maxStock) {
+    if (this.quantity < this.maxAllowedQuantity) {
       this.quantity++;
     }
   }
@@ -751,8 +751,9 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     let num = parseInt(cleanVal, 10);
-    if (this.maxStock > 0 && num > this.maxStock) {
-      num = this.maxStock;
+    const maxAllowed = this.maxAllowedQuantity;
+    if (maxAllowed > 0 && num > maxAllowed) {
+      num = maxAllowed;
     }
     if (num < 1) {
       num = 1;
@@ -766,15 +767,20 @@ export class QuickViewDrawerComponent implements OnInit, OnDestroy, OnChanges {
     const input = event.target as HTMLInputElement;
     const cleanVal = input.value.replace(/\D/g, '');
     let num = parseInt(cleanVal, 10);
+    const maxAllowed = this.maxAllowedQuantity;
 
     if (isNaN(num) || num < 1) {
-      num = this.maxStock > 0 ? 1 : 0;
-    } else if (this.maxStock > 0 && num > this.maxStock) {
-      num = this.maxStock;
+      num = maxAllowed > 0 ? 1 : 0;
+    } else if (maxAllowed > 0 && num > maxAllowed) {
+      num = maxAllowed;
     }
 
     this.quantity = num;
     input.value = String(this.quantity);
+  }
+
+  get maxAllowedQuantity(): number {
+    return Math.min(this.maxStock, MAX_ITEM_QUANTITY);
   }
 
   get isLowStock(): boolean {

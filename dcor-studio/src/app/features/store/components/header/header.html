@@ -253,11 +253,15 @@
             </div>
           </div>
         </div>
-        <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
-          (click)="toggleCartDrawer()">
-          <app-icon name="ShoppingCart" size="20"></app-icon>
-          <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
-        </button>
+        <div class="header-cart-wrapper">
+          <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
+            (mouseenter)="onCartIconMouseEnter()" (mouseleave)="onCartIconMouseLeave()"
+            (click)="toggleCartDrawer()">
+            <app-icon name="ShoppingCart" size="20"></app-icon>
+            <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
+          </button>
+          <ng-container *ngTemplateOutlet="cartPreviewDropdownTpl"></ng-container>
+        </div>
         <div class="user-dropdown-wrapper">
           <button class="icon-btn header-user-btn" (click)="toggleUserMenu()"
             (mouseenter)="onUserIconMouseEnter()" (mouseleave)="onUserIconMouseLeave()"
@@ -307,11 +311,15 @@
       </ng-container>
 
       <ng-template #guestTemplate>
-        <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
-          (click)="toggleCartDrawer()">
-          <app-icon name="ShoppingCart" size="20"></app-icon>
-          <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
-        </button>
+        <div class="header-cart-wrapper">
+          <button id="header-cart-icon" class="icon-btn" title="Giỏ hàng" style="position: relative;"
+            (mouseenter)="onCartIconMouseEnter()" (mouseleave)="onCartIconMouseLeave()"
+            (click)="toggleCartDrawer()">
+            <app-icon name="ShoppingCart" size="20"></app-icon>
+            <span *ngIf="cartCount > 0" class="badge" id="cart-count">{{ cartCount }}</span>
+          </button>
+          <ng-container *ngTemplateOutlet="cartPreviewDropdownTpl"></ng-container>
+        </div>
 
         <!-- Icon tài khoản cá nhân cho khách vãng lai (Hover giữ popup, di chuột vào trong chọn thoải mái) -->
         <div #guestDropdownWrapper class="user-dropdown-wrapper guest-dropdown-wrapper">
@@ -527,5 +535,52 @@
     </div>
   </div>
 </aside>
+
+<ng-template #cartPreviewDropdownTpl>
+  <div class="cart-preview-dropdown-menu" *ngIf="isCartPreviewOpen && !isCartDrawerOpen"
+    (mouseenter)="onCartDropdownMouseEnter()" (mouseleave)="onCartDropdownMouseLeave()">
+    <div class="cart-drop-header">
+      <div class="cart-drop-title">
+        <span>Giỏ hàng của bạn</span>
+        <span *ngIf="cartCount > 0" class="cart-drop-badge">{{ cartCount }} sản phẩm</span>
+      </div>
+    </div>
+
+    <div class="cart-drop-list" *ngIf="cartPreviewItems.length > 0; else emptyCartPreviewTpl">
+      <a *ngFor="let item of cartPreviewItems"
+         [routerLink]="['/products', item.productId]"
+         (click)="isCartPreviewOpen = false"
+         class="cart-drop-item">
+        <div class="cart-drop-thumb">
+          <img [src]="item.image || '/assets/img/furniture-placeholder.svg'"
+               (error)="$any($event.target).src = '/assets/img/furniture-placeholder.svg'"
+               [alt]="item.name" />
+        </div>
+        <div class="cart-drop-body">
+          <div class="cart-drop-item-name" [title]="item.name">{{ item.name }}</div>
+          <div class="cart-drop-item-variant" *ngIf="item.variantName">{{ item.variantName }}</div>
+          <div class="cart-drop-item-meta">
+            <span class="cart-drop-item-price">{{ item.price | number:'1.0-0' }} ₫</span>
+            <span class="cart-drop-item-qty">x{{ item.quantity }}</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <ng-template #emptyCartPreviewTpl>
+      <div class="cart-drop-empty">
+        <app-icon name="ShoppingCart" size="24" style="color: var(--color-text-muted, #757575);"></app-icon>
+        <p>Giỏ hàng của bạn đang trống</p>
+      </div>
+    </ng-template>
+
+    <div class="cart-drop-footer">
+      <button type="button" class="cart-view-more-btn" (click)="openCartDrawerFromPreview()">
+        <app-icon name="ChevronLeft" size="15"></app-icon>
+        <span>Xem thêm</span>
+      </button>
+    </div>
+  </div>
+</ng-template>
 
 <app-cart-drawer [isOpen]="isCartDrawerOpen" (close)="isCartDrawerOpen = false"></app-cart-drawer>

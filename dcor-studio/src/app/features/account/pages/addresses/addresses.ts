@@ -6,13 +6,14 @@ import { LucideAngularModule, Plus, CheckCircle2, AlertCircle, MapPin, Pencil, T
 import { CustomerService, CustomerAddress } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ALL_VIETNAM_PROVINCE_NAMES, getWardsForProvince } from '../../../../shared/data/vietnam-administrative.data';
+import { CustomDropdownComponent } from '../../../../shared/components/custom-dropdown/custom-dropdown';
 import { environment } from '../../../../../environments/environment';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-account-addresses',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, CustomDropdownComponent],
   templateUrl: './addresses.html',
   styleUrls: ['./addresses.css']
 })
@@ -33,8 +34,42 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
   currentUser: any = null;
   addresses: CustomerAddress[] = [];
   isLoading = true;
-  errorMessage = '';
-  successMessage = '';
+  private _errorMessage = '';
+  private _successMessage = '';
+  private alertTimer: ReturnType<typeof setTimeout> | null = null;
+
+  get errorMessage(): string {
+    return this._errorMessage;
+  }
+
+  set errorMessage(val: string) {
+    this._errorMessage = val;
+    this.scheduleAlertAutoClear();
+  }
+
+  get successMessage(): string {
+    return this._successMessage;
+  }
+
+  set successMessage(val: string) {
+    this._successMessage = val;
+    this.scheduleAlertAutoClear();
+  }
+
+  private scheduleAlertAutoClear(): void {
+    if (this.alertTimer) {
+      clearTimeout(this.alertTimer);
+      this.alertTimer = null;
+    }
+    if (this._errorMessage || this._successMessage) {
+      this.alertTimer = setTimeout(() => {
+        this._errorMessage = '';
+        this._successMessage = '';
+        this.alertTimer = null;
+        this.cdr.markForCheck();
+      }, 4000);
+    }
+  }
 
   // Modal State
   isModalOpen = false;
@@ -655,6 +690,10 @@ export class AccountAddressesComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.alertTimer) {
+      clearTimeout(this.alertTimer);
+      this.alertTimer = null;
+    }
     this.sub.unsubscribe();
   }
 }

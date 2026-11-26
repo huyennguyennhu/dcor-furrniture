@@ -258,16 +258,16 @@
                 <app-icon name="Minus" size="14"></app-icon>
               </button>
               <input type="number" class="stepper-input" [ngModel]="quantity" (ngModelChange)="onQuantityChange($event)"
-                min="1" [max]="maxStock" [disabled]="maxStock === 0" />
+                min="1" [max]="maxAllowedQuantity" [disabled]="maxStock === 0" />
               <button type="button" class="stepper-btn" (click)="increaseQuantity()"
-                [disabled]="quantity >= maxStock || maxStock === 0" aria-label="Tăng số lượng">
+                [disabled]="quantity >= maxAllowedQuantity || maxStock === 0" aria-label="Tăng số lượng">
                 <app-icon name="Plus" size="14"></app-icon>
               </button>
             </div>
           </div>
 
           <div class="qty-hint" *ngIf="maxStock > 0">
-            Tối đa {{ maxStock }} sản phẩm có sẵn
+            Tối đa {{ maxAllowedQuantity }} sản phẩm{{ maxStock < 100 ? ' có sẵn' : '/đơn' }}
           </div>
         </div>
 
@@ -638,14 +638,15 @@
             <span>Biến thể:</span>
           </label>
           <div class="variant-filter-select-box">
-            <select id="reviewVariantFilter" class="variant-filter-select"
-              [class.has-filter-applied]="selectedVariantFilter !== 'all'" [ngModel]="selectedVariantFilter"
-              (ngModelChange)="setVariantFilter($event)">
-              <option value="all">Tất cả biến thể</option>
-              <option *ngFor="let v of product.variants" [value]="v.id">
-                {{ v.name }}
-              </option>
-            </select>
+            <app-custom-dropdown
+              style="min-width: 175px;"
+              [compact]="true"
+              [active]="selectedVariantFilter !== 'all'"
+              [options]="variantFilterOptions"
+              [ngModel]="selectedVariantFilter"
+              (ngModelChange)="setVariantFilter($event)"
+              [searchable]="false">
+            </app-custom-dropdown>
             <button type="button" *ngIf="selectedVariantFilter !== 'all'" class="btn-clear-variant-filter"
               (click)="setVariantFilter('all')" title="Bỏ lọc theo biến thể">
               <app-icon name="X" size="12"></app-icon>

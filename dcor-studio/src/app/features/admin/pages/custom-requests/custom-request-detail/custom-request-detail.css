@@ -5814,5 +5814,30 @@ input[type="text"].field-input::-webkit-list-button {
   }
 }
 
+/* Nút Xem đơn hàng trong waiting-client-sign-box */
+.btn-goto-order-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition: all 0.15s ease;
+}
+
+.btn-goto-order-pill:hover {
+  background: #f9fafb;
+  border-color: #765337;
+  color: #765337;
+}
+
 
 

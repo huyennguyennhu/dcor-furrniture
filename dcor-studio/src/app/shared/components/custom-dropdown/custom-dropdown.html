@@ -1,0 +1,54 @@
+<div class="addr-custom-select"
+  [class.is-open]="isOpen"
+  [class.dropup]="isOpen && dropUp"
+  [class.is-disabled]="disabled"
+  [class.compact]="compact">
+  <button #triggerBtn type="button"
+    class="addr-select-trigger"
+    [class.is-invalid]="invalid"
+    [class.is-active]="active"
+    [disabled]="disabled"
+    (click)="toggle($event, triggerBtn)">
+    <span class="addr-select-val" [class.placeholder]="!selectedLabel">
+      {{ selectedLabel || placeholder }}
+    </span>
+    <lucide-angular [img]="icons.ChevronDown" size="16" class="addr-select-chevron"></lucide-angular>
+  </button>
+
+  <div class="addr-select-menu" *ngIf="isOpen" (click)="$event.stopPropagation()">
+    <div class="addr-select-search" *ngIf="searchable">
+      <lucide-angular [img]="icons.Search" size="14" class="addr-search-icon"></lucide-angular>
+      <input type="text"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange()"
+        [ngModelOptions]="{ standalone: true }"
+        [placeholder]="searchPlaceholder"
+        class="addr-search-input"
+        autofocus />
+    </div>
+
+    <div class="addr-select-options"
+      [class.always-scroll]="filteredOptions.length > 5"
+      (scroll)="onListScroll($event)">
+      <div *ngFor="let opt of visibleOptions"
+        class="addr-select-option"
+        [class.selected]="opt.value === value"
+        [class.disabled]="opt.disabled"
+        (click)="selectOption(opt, $event)">
+        <span>{{ opt.label }}</span>
+        <lucide-angular *ngIf="opt.value === value" [img]="icons.Check" size="14"></lucide-angular>
+      </div>
+
+      <div *ngIf="filteredOptions.length === 0" class="addr-select-empty">
+        {{ emptyText }}
+      </div>
+
+      <button *ngIf="visibleOptions.length < filteredOptions.length"
+        type="button"
+        class="addr-select-load-more"
+        (click)="loadMore($event)">
+        Hiển thị {{ visibleOptions.length }} / {{ filteredOptions.length }} • Bấm hoặc cuộn xem thêm
+      </button>
+    </div>
+  </div>
+</div>

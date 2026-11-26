@@ -34,25 +34,22 @@
                  [(ngModel)]="searchQuery" (ngModelChange)="onFilterChange()" />
           <app-icon name="Search" size="18"></app-icon>
         </div>
-        <div class="select-wrapper">
-          <select class="filter-select" [(ngModel)]="materialFilter" (ngModelChange)="onFilterChange()">
-            <option value="">Tất cả chất liệu</option>
-            <option value="Fabric">Vải bọc đệm</option>
-            <option value="Leather">Da thú thật</option>
-            <option value="Wood">Gỗ tự nhiên</option>
-            <option value="Metal">Khung kim loại</option>
-            <option value="Lacquered">Sơn mài</option>
-          </select>
-          <app-icon name="ChevronDown" size="16"></app-icon>
-        </div>
-        <div class="select-wrapper">
-          <select class="filter-select" [(ngModel)]="sortBy" (ngModelChange)="onFilterChange()">
-            <option value="featured">Sắp xếp: Nổi bật</option>
-            <option value="price-asc">Giá: Thấp đến Cao</option>
-            <option value="price-desc">Giá: Cao đến Thấp</option>
-          </select>
-          <app-icon name="ChevronDown" size="16"></app-icon>
-        </div>
+        <app-custom-dropdown
+          style="min-width: 185px;"
+          [compact]="true"
+          [(ngModel)]="materialFilter"
+          (ngModelChange)="onFilterChange()"
+          [options]="materialOptions"
+          [searchable]="false">
+        </app-custom-dropdown>
+        <app-custom-dropdown
+          style="min-width: 185px;"
+          [compact]="true"
+          [(ngModel)]="sortBy"
+          (ngModelChange)="onFilterChange()"
+          [options]="sortOptions"
+          [searchable]="false">
+        </app-custom-dropdown>
       </div>
 
       <!-- Color filter dots -->

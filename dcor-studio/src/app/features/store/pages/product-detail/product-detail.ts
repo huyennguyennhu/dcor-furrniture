@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { finalize, TimeoutError, timeout, Subscription } from 'rxjs';
 import { CatalogProduct, ProductCategory } from '../../../../shared/models/catalog.model';
 import { IconComponent } from '../../../../shared/components/icon/icon';
-import { CartService } from '../../../../core/services/cart.service';
+import { CartService, MAX_ITEM_QUANTITY } from '../../../../core/services/cart.service';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
 import { PromotionService, formatDiscountBadgeText } from '../../../../core/services/promotion.service';
@@ -55,6 +55,7 @@ import { ProductCardComponent } from '../../../../shared/components/product-card
 import { CustomRequestModalComponent } from '../../../../shared/components/custom-request-modal/custom-request-modal';
 import { ShowroomConsultationModalComponent } from '../../../../shared/components/showroom-consultation-modal/showroom-consultation-modal';
 import { CompareService } from '../../../../core/services/compare.service';
+import { CustomDropdownComponent, DropdownOption } from '../../../../shared/components/custom-dropdown/custom-dropdown';
 
 const GROUP_LABEL_MAP: Record<string, string> = {
   vaConfigurationSize: 'Kích thước',
@@ -84,7 +85,8 @@ const GROUP_LABEL_MAP: Record<string, string> = {
     FormsModule,
     ProductCardComponent,
     CustomRequestModalComponent,
-    ShowroomConsultationModalComponent
+    ShowroomConsultationModalComponent,
+    CustomDropdownComponent
   ],
   templateUrl: './product-detail.html',
   styleUrls: ['./product-detail.css']
@@ -1319,6 +1321,10 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
     this.lightboxZoom = Math.max(1, this.lightboxZoom - 0.3);
   }
 
+  get maxAllowedQuantity(): number {
+    return Math.min(this.maxStock, MAX_ITEM_QUANTITY);
+  }
+
   // --- QUANTITY STEPPER ---
   decreaseQuantity() {
     if (this.quantity > 1) {
@@ -1328,22 +1334,32 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   increaseQuantity() {
-    if (this.quantity < this.maxStock) {
+    const maxAllowed = this.maxAllowedQuantity;
+    if (this.quantity < maxAllowed) {
       this.quantity++;
       this.quantityError = '';
     } else {
-      this.quantityError = `Tối đa ${this.maxStock} sản phẩm có sẵn trong kho.`;
+      const msg = this.maxStock < MAX_ITEM_QUANTITY
+        ? `Tối đa ${this.maxStock} sản phẩm có sẵn trong kho.`
+        : `Mỗi sản phẩm chỉ có thể đặt tối đa ${MAX_ITEM_QUANTITY} chiếc.`;
+      this.quantityError = msg;
+      this.showToast(msg, 'warning');
     }
   }
 
   onQuantityChange(val: any) {
     const parsed = parseInt(val, 10);
+    const maxAllowed = this.maxAllowedQuantity;
     if (isNaN(parsed) || parsed < 1) {
       this.quantity = 1;
       this.quantityError = '';
-    } else if (parsed > this.maxStock) {
-      this.quantity = this.maxStock;
-      this.quantityError = `Số lượng không được vượt quá tồn kho (${this.maxStock} sản phẩm).`;
+    } else if (parsed > maxAllowed) {
+      this.quantity = maxAllowed;
+      const msg = this.maxStock < MAX_ITEM_QUANTITY
+        ? `Số lượng không được vượt quá tồn kho (${this.maxStock} sản phẩm).`
+        : `Mỗi sản phẩm chỉ có thể đặt tối đa ${MAX_ITEM_QUANTITY} chiếc.`;
+      this.quantityError = msg;
+      this.showToast(msg, 'warning');
     } else {
       this.quantity = parsed;
       this.quantityError = '';
@@ -1906,6 +1922,12 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
     if (!this.totalReviewsCount) return 0;
     const count = this.starDistribution[star] || 0;
     return Math.round((count / this.totalReviewsCount) * 100);
+  }
+
+  get variantFilterOptions(): DropdownOption[] {
+    const base: DropdownOption[] = [{ value: 'all', label: 'Tất cả biến thể' }];
+    const variants = this.product?.variants || [];
+    return base.concat(variants.map((v: any) => ({ value: v.id, label: v.name })));
   }
 
   showToast(msg: string, type: 'success' | 'warning' | 'info' = 'success') {

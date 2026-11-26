@@ -24,6 +24,8 @@ import {
 } from '../../../../../core/services/custom-request.service';
 import { AdminAuthService } from '../../../../../core/services/admin-auth.service';
 import { ProductService } from '../../../../../core/services/product.service';
+import { OrdersService } from '../../orders/services/orders.service';
+import { OrderV2 } from '../../orders/models/order.model';
 
 export interface ArchitectStaff {
   id: string;
@@ -1554,11 +1556,14 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     { key: 'COMPLETED', name: 'Nghiệm thu', sub: 'Thu 70% & Bảo hành' }
   ];
 
+  private subOrders?: Subscription;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private customRequestService: CustomRequestService,
     private adminAuthService: AdminAuthService,
+    private ordersService: OrdersService,
     private http: HttpClient,
     private cdr: ChangeDetectorRef,
     private productService: ProductService
@@ -1580,10 +1585,15 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
         this.loadRequest();
       }
     });
+
+    this.subOrders = this.ordersService.orders$.subscribe(() => {
+      this.cdr.markForCheck();
+    });
   }
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
+    this.subOrders?.unsubscribe();
     if (this.toastTimer) clearTimeout(this.toastTimer);
     if (this.savedTimer) clearTimeout(this.savedTimer);
   }
@@ -1854,6 +1864,17 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
       );
       return;
     }
+    if (modal === 'DELIVERY' && !this.isLinkedOrderDelivered()) {
+      const order = this.getLinkedOrder();
+      const statusLabel = this.getLinkedOrderStatusMeta().label;
+      this.triggerToast(
+        'Chưa thể quyết toán thu 70%',
+        `Đơn hàng #${order?.orderNumber || this.request?.generatedOrderNumber || 'CUST'} hiện đang ở trạng thái "${statusLabel}". Vui lòng chờ bộ phận giao hàng xác nhận Đã giao (DELIVERED) trước khi thu tiền và kích hoạt bảo hành.`,
+        'info',
+        5000
+      );
+      return;
+    }
     this.activeModal = modal;
     if (modal === 'CANCEL') {
       this.cancelForm = { reason: '', customReason: '' };
@@ -2050,13 +2071,81 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     return this.activeViewingStep >= 6 && this.getCurrentStepIndex() >= 6;
   }
 
+  getLinkedOrder(): OrderV2 | undefined {
+    if (!this.request) return undefined;
+    if (this.request.generatedOrderNumber) {
+      return this.ordersService.getOrderById(this.request.generatedOrderNumber);
+    }
+    if (this.request.code) {
+      return this.ordersService.orders.find(o => 
+        o.orderNumber?.includes(this.request!.code.replace('CR-', 'CUST-')) ||
+        o.customRequestId === this.request!.code
+      );
+    }
+    return undefined;
+  }
+
+  isLinkedOrderDelivered(): boolean {
+    if (!this.request) return false;
+    if (this.request.status === 'COMPLETED') return true;
+    const order = this.getLinkedOrder();
+    if (!order) return false;
+    return order.status === 'DELIVERED' || order.status === 'COMPLETED';
+  }
+
+  getLinkedOrderStatusMeta(): { label: string; color: string; bgColor: string; borderColor: string } {
+    const order = this.getLinkedOrder();
+    if (!order) {
+      return { 
+        label: 'Chưa liên kết đơn', 
+        color: '#6B7280', 
+        bgColor: '#F3F4F6',
+        borderColor: '#E5E7EB'
+      };
+    }
+    switch (order.status) {
+      case 'DELIVERED':
+        return { label: 'Đã giao hàng (Chờ quyết toán)', color: '#059669', bgColor: '#D1FAE5', borderColor: '#A7F3D0' };
+      case 'COMPLETED':
+        return { label: 'Đã hoàn tất', color: '#10B981', bgColor: '#ECFDF5', borderColor: '#A7F3D0' };
+      case 'SHIPPED':
+        return { label: 'Đang giao hàng (Vận chuyển)', color: '#2563EB', bgColor: '#DBEAFE', borderColor: '#BFDBFE' };
+      case 'READY_TO_SHIP':
+        return { label: 'Sẵn sàng xuất kho', color: '#D97706', bgColor: '#FEF3C7', borderColor: '#FDE68A' };
+      case 'PROCESSING':
+        return { label: 'Đang chuẩn bị đóng gói', color: '#D97706', bgColor: '#FEF3C7', borderColor: '#FDE68A' };
+      case 'CONFIRMED':
+        return { label: 'Đã xác nhận đơn hàng', color: '#4F46E5', bgColor: '#EEF2FF', borderColor: '#C7D2FE' };
+      case 'PENDING':
+        return { label: 'Chờ xác nhận', color: '#6B7280', bgColor: '#F3F4F6', borderColor: '#E5E7EB' };
+      case 'CANCELLED':
+        return { label: 'Đã hủy', color: '#DC2626', bgColor: '#FEE2E2', borderColor: '#FECACA' };
+      default:
+        return { label: String(order.status), color: '#4B5563', bgColor: '#F3F4F6', borderColor: '#E5E7EB' };
+    }
+  }
+
   // Step 7: Giao hàng, thu 70% & Kích hoạt bảo hành
   submitDeliveryWarranty(): void {
     if (!this.request) return;
     this.customRequestService.completeDeliveryAndWarranty(this.request.id, this.deliveryForm.staffName);
+    
+    // Cập nhật đơn hàng tương ứng sang COMPLETED & PAID trong OrdersService nếu cần
+    if (this.request.generatedOrderNumber) {
+      const order = this.ordersService.getOrderById(this.request.generatedOrderNumber);
+      if (order && order.status !== 'COMPLETED') {
+        this.ordersService.completeOrder(order.id, this.deliveryForm.staffName);
+      }
+    }
+
     this.closeModal();
     this.loadRequest();
-    this.triggerToast('Hoàn tất may đo & Kích hoạt BH', `Hồ sơ đã hoàn tất chu trình. Đã kích hoạt bảo hành chính hãng 5 năm #${this.request.warrantyCode}.`, 'success');
+    this.triggerToast(
+      'Quyết toán 70% & Kích hoạt BH thành công',
+      `Hồ sơ đã hoàn tất chu trình may đo & quyết toán 100%. Đã kích hoạt bảo hành chính hãng 5 năm #${this.request.warrantyCode}.`,
+      'success',
+      5000
+    );
   }
 
   // Hủy hồ sơ

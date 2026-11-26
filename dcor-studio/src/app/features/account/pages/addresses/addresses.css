@@ -172,16 +172,53 @@
   color: var(--color-danger, #C42326);
 }
 
-/* ALERTS */
+/* ALERTS -> Floating Toast with Bottom Countdown */
 .alert {
+  position: fixed;
+  top: 104px;
+  right: 24px;
+  z-index: 999999;
+  min-width: 280px;
+  max-width: 440px;
+  width: max-content;
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 18px;
-  border-radius: var(--radius-control, 8px);
+  border-radius: 12px;
   font-size: var(--text-sm, 14px);
   font-weight: 500;
-  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: addrToastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.alert::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: currentColor;
+  opacity: 0.65;
+  animation: addrToastCountdown 4s linear forwards;
+}
+
+@keyframes addrToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes addrToastCountdown {
+  from { width: 100%; }
+  to { width: 0%; }
 }
 
 .alert-success {

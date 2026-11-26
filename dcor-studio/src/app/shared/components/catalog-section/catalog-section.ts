@@ -3,13 +3,14 @@ import { Component, Input, OnInit, OnChanges, SimpleChanges } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HoverImageSlider } from '../hover-image-slider/hover-image-slider';
+import { CustomDropdownComponent, DropdownOption } from '../custom-dropdown/custom-dropdown';
 import { CatalogProduct } from '../../models/catalog.model';
 import { WishlistService } from '../../../core/services/wishlist.service';
 
 @Component({
   selector: 'app-catalog-section',
   standalone: true,
-  imports: [IconComponent, CommonModule, FormsModule, HoverImageSlider],
+  imports: [IconComponent, CommonModule, FormsModule, HoverImageSlider, CustomDropdownComponent],
   templateUrl: './catalog-section.html',
   styleUrls: ['./catalog-section.css']
 })
@@ -26,6 +27,21 @@ export class CatalogSection implements OnInit, OnChanges {
   colorFilter: string = '';
   sortBy: string = 'featured';
   currentPage: number = 1;
+
+  readonly materialOptions: DropdownOption[] = [
+    { value: '', label: 'Tất cả chất liệu' },
+    { value: 'Fabric', label: 'Vải bọc đệm' },
+    { value: 'Leather', label: 'Da thú thật' },
+    { value: 'Wood', label: 'Gỗ tự nhiên' },
+    { value: 'Metal', label: 'Khung kim loại' },
+    { value: 'Lacquered', label: 'Sơn mài' }
+  ];
+
+  readonly sortOptions: DropdownOption[] = [
+    { value: 'featured', label: 'Sắp xếp: Nổi bật' },
+    { value: 'price-asc', label: 'Giá: Thấp đến Cao' },
+    { value: 'price-desc', label: 'Giá: Cao đến Thấp' }
+  ];
 
   readonly ITEMS_PER_PAGE = 4;
   readonly COLOR_MAP: Record<string, string> = {

@@ -99,8 +99,8 @@
                 <!-- Thumbnail & Tên sản phẩm + Giá đơn vị -->
                 <div class="item-main-left">
                   <div class="item-img-wrap">
-                    <img [src]="ret.imageUrl || 'assets/placeholder.png'"
-                         (error)="$any($event.target).src = 'assets/placeholder.png'"
+                    <img [src]="ret.imageUrl || '/assets/img/furniture-placeholder.svg'"
+                         (error)="$any($event.target).src = '/assets/img/furniture-placeholder.svg'"
                          [alt]="ret.productName" class="item-img" />
                   </div>
                   <div class="item-details">
@@ -127,13 +127,9 @@
               </div>
 
               <div class="actions-wrap">
-                <a [routerLink]="['/account/orders']" [queryParams]="{ orderNumber: ret.orderNumber }" class="btn-ref-order" title="Xem chi tiết đơn hàng gốc #{{ ret.orderNumber }}">
+                <button type="button" class="btn-ref-order" (click)="openOrderDetail(ret.orderNumber, $event)" title="Xem chi tiết đơn hàng gốc #{{ ret.orderNumber }}">
                   <lucide-angular [img]="icons.Package" size="13"></lucide-angular>
                   <span>Đơn gốc: <strong>#{{ ret.orderNumber }}</strong></span>
-                </a>
-                <button type="button" class="btn-outline" (click)="openReturnDetail(ret, $event)">
-                  <lucide-angular [img]="icons.FileText" size="14"></lucide-angular>
-                  <span>Xem chi tiết</span>
                 </button>
               </div>
             </div>
@@ -222,8 +218,9 @@
       <section class="modal-card-section" style="margin-bottom: 20px;">
         <h4 class="modal-section-title">Sản phẩm yêu cầu đổi trả</h4>
         <div style="display: flex; gap: 16px; padding: 16px; background: #FAF7F5; border: 1.5px solid #EAE1D7; border-radius: 12px; align-items: center;">
-          <img [src]="selectedReturn.imageUrl || 'assets/placeholder.png'" [alt]="selectedReturn.productName"
-               style="width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 1px solid #E5D9CF; flex-shrink: 0;" />
+          <img [src]="selectedReturn.imageUrl || '/assets/img/furniture-placeholder.svg'" [alt]="selectedReturn.productName"
+               (error)="$any($event.target).src = '/assets/img/furniture-placeholder.svg'"
+               style="width: 72px; height: 72px; padding: 5px; box-sizing: border-box; background: #FFFFFF; border-radius: 10px; object-fit: contain; object-position: center; border: 1px solid #E5D9CF; flex-shrink: 0;" />
           <div style="flex: 1; min-width: 0;">
             <div style="font-weight: 700; font-size: 15px; color: #1F2937; margin-bottom: 4px;">{{ selectedReturn.productName }}</div>
             <div *ngIf="selectedReturn.variantDescription" style="font-size: 12.5px; color: #6B7280; margin-bottom: 2px;">{{ selectedReturn.variantDescription }}</div>
@@ -304,11 +301,11 @@
         Đóng
       </button>
 
-      <a [routerLink]="['/account/orders']" [queryParams]="{ orderNumber: selectedReturn.orderNumber }" (click)="closeDetailDrawer()"
-         style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; background: #765337; color: #FFF; font-size: 13px; font-weight: 600; border-radius: 8px; text-decoration: none;">
+      <button type="button" (click)="closeDetailDrawer(); openOrderDetail(selectedReturn.orderNumber, $event)"
+         style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 20px; background: #765337; color: #FFF; font-size: 13px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; font-family: inherit;">
         <lucide-angular [img]="icons.Package" size="15"></lucide-angular>
         <span>Xem đơn hàng gốc</span>
-      </a>
+      </button>
     </div>
 
   </div>
@@ -321,6 +318,184 @@
   <div class="lightbox-container" (click)="$event.stopPropagation()">
     <button type="button" class="lightbox-close" (click)="closeZoomImage($event)" title="Đóng">×</button>
     <img [src]="zoomedImageUrl" alt="Hình ảnh bằng chứng phóng to" class="lightbox-image" />
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- POPUP MODAL: CHI TIẾT ĐƠN HÀNG GỐC TẠI CHỖ (CHUẨN DCOR)        -->
+<!-- ============================================================== -->
+<div *ngIf="isOrderDetailOpen" class="order-modal-backdrop" (click)="closeOrderDetail()">
+  <div class="order-modal-dialog" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="order-modal-header">
+      <div class="modal-header-info">
+        <div class="modal-title-row">
+          <h2 class="modal-title">Chi tiết đơn hàng #{{ selectedOrder?.orderNumber || '...' }}</h2>
+          <span *ngIf="selectedOrder" class="order-status-chip" [ngClass]="getOrderStatusClass(selectedOrder)">
+            <span class="status-dot"></span>
+            {{ getOrderDisplayStatus(selectedOrder) }}
+          </span>
+          <span *ngIf="selectedOrder?.isCustomDesign" class="topbar-custom-tag" style="margin-left: 6px;">Custom</span>
+        </div>
+        <p *ngIf="selectedOrder" class="modal-subtitle">
+          Thời gian đặt: <strong>{{ selectedOrder.createdAt | date:'HH:mm - dd/MM/yyyy' }}</strong>
+          <span *ngIf="selectedOrder.shippingProvider"> • Đơn vị vận chuyển: <strong>{{ selectedOrder.shippingProvider }}</strong></span>
+        </p>
+      </div>
+      <button type="button" class="modal-close-btn" (click)="closeOrderDetail()" title="Đóng">×</button>
+    </div>
+
+    <!-- Modal Body (Scrollable) -->
+    <div class="order-modal-body">
+      <div *ngIf="isLoadingOrderDetail" class="loading-state">
+        <div class="spinner"></div>
+        <p>Đang tải chi tiết đơn hàng gốc...</p>
+      </div>
+
+      <div *ngIf="orderDetailError" class="rejection-box" style="margin-bottom: 20px;">
+        <p class="rejection-desc">{{ orderDetailError }}</p>
+      </div>
+
+      <div *ngIf="!isLoadingOrderDetail && selectedOrder">
+        <!-- 1. THANH TIẾN TRÌNH (STEPPER) CHUẨN DCOR -->
+        <section class="modal-stepper-section">
+          <div class="stepper-track">
+            <div *ngFor="let s of getOrderTimelineSteps(selectedOrder); let first = first"
+                 class="stepper-step"
+                 [ngClass]="'step-' + s.status">
+              <div *ngIf="!first" class="step-connector"></div>
+              <div class="step-circle">
+                <lucide-angular [img]="s.icon" size="20"></lucide-angular>
+              </div>
+              <div class="step-meta">
+                <div class="step-title">{{ s.title }}</div>
+                <div *ngIf="s.time" class="step-time">{{ s.time | date:'HH:mm dd-MM-yyyy' }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. ĐƯỜNG NÉT ĐỨT PHONG BÌ TRANG TRÍ -->
+        <div class="envelope-dashed-line"></div>
+
+        <!-- 3. DANH SÁCH SẢN PHẨM TRONG ĐƠN -->
+        <section class="order-items-container">
+          <div *ngFor="let item of selectedOrder.items" class="order-item-card">
+            <div class="item-thumb-box">
+              <img [src]="item.imageUrl || '/assets/img/furniture-placeholder.svg'"
+                   (error)="$any($event.target).src = '/assets/img/furniture-placeholder.svg'"
+                   [alt]="item.productName"
+                   class="item-thumb-img" />
+            </div>
+
+            <div class="item-details-box">
+              <div class="item-row-top">
+                <h4 class="item-product-name" [title]="item.productName">{{ item.productName }}</h4>
+                <div class="item-price-val">{{ formatCurrency(item.price) }}</div>
+              </div>
+
+              <div class="item-row-bottom">
+                <div class="item-variant-desc">
+                  Phân loại hàng: {{ item.variantDescription || 'Tiêu chuẩn chính hãng' }}
+                </div>
+                <div class="item-qty-tag">x{{ item.quantity }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. BẢNG THÔNG TIN TÀI CHÍNH CHUẨN DCOR -->
+        <section class="order-finance-section">
+          <div class="finance-table-wrapper">
+            <div class="finance-data-row">
+              <span class="finance-col-label">Tổng tiền hàng</span>
+              <span class="finance-col-value">{{ formatCurrency(selectedOrder.subTotal) }}</span>
+            </div>
+
+            <div class="finance-data-row">
+              <span class="finance-col-label">Phí vận chuyển</span>
+              <span class="finance-col-value">{{ selectedOrder.shippingFee > 0 ? formatCurrency(selectedOrder.shippingFee) : 'Miễn phí' }}</span>
+            </div>
+
+            <div *ngIf="selectedOrder.discountAmount > 0" class="finance-data-row discount-row">
+              <span class="finance-col-label">Giảm giá voucher / ưu đãi</span>
+              <span class="finance-col-value discount-text">-{{ formatCurrency(selectedOrder.discountAmount) }}</span>
+            </div>
+
+            <!-- Đơn hàng giá trị cao (Cọc 30%) -->
+            <ng-container *ngIf="selectedOrder.isHighValue">
+              <div class="finance-data-row deposit-target-row">
+                <span class="finance-col-label">Số tiền cọc 30%</span>
+                <span class="finance-col-value deposit-target-text">{{ formatCurrency(selectedOrder.depositAmount) }}</span>
+              </div>
+              <div class="finance-data-row paid-row">
+                <span class="finance-col-label">Đã thanh toán</span>
+                <span class="finance-col-value paid-text">{{ formatCurrency(selectedOrder.paidAmount || 0) }}</span>
+              </div>
+              <div class="finance-data-row remaining-row">
+                <span class="finance-col-label">Còn lại thanh toán khi nhận hàng</span>
+                <span class="finance-col-value remaining-text">{{ formatCurrency(selectedOrder.remainingAmount || (selectedOrder.totalAmount - (selectedOrder.paidAmount || 0))) }}</span>
+              </div>
+            </ng-container>
+
+            <div class="finance-data-row total-amount-row">
+              <span class="finance-col-label total-label">Thành tiền</span>
+              <span class="finance-col-value total-value">{{ formatCurrency(selectedOrder.totalAmount) }}</span>
+            </div>
+
+            <div class="finance-data-row payment-method-row">
+              <span class="finance-col-label">Phương thức thanh toán</span>
+              <span class="finance-col-value method-text">
+                {{ selectedOrder.paymentMethod === 'COD' ? 'Thanh toán khi nhận hàng (COD)' :
+                   (selectedOrder.paymentMethod === 'BANK_TRANSFER' ? 'Chuyển khoản ngân hàng (VietQR)' :
+                   selectedOrder.paymentMethod) }}
+              </span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5. THÔNG TIN GIAO HÀNG -->
+        <section class="order-shipping-card">
+          <div class="shipping-card-header">
+            <div class="shipping-header-left">
+              <lucide-angular [img]="icons.MapPin" size="16" class="shipping-header-icon"></lucide-angular>
+              <h4 class="shipping-card-heading">Thông tin giao hàng</h4>
+            </div>
+            <span *ngIf="selectedOrder.shippingProvider" class="shipping-provider-badge">
+              {{ selectedOrder.shippingProvider }}
+            </span>
+          </div>
+
+          <div class="shipping-card-content">
+            <div class="shipping-recipient-row">
+              <strong class="recipient-name">{{ selectedOrder.receiverName }}</strong>
+              <span class="meta-sep">•</span>
+              <span class="recipient-phone">{{ selectedOrder.phone }}</span>
+            </div>
+
+            <p class="shipping-address-text">{{ formatShippingAddress(selectedOrder) }}</p>
+
+            <div *ngIf="selectedOrder.trackingCode" class="shipping-tracking-box">
+              <span class="tracking-title">Mã vận đơn:</span>
+              <strong class="tracking-number">{{ selectedOrder.trackingCode }}</strong>
+              <button type="button" class="btn-copy-chip" (click)="copyToClipboard(selectedOrder.trackingCode || '', 'Mã vận đơn')">
+                <lucide-angular [img]="icons.Copy" size="12"></lucide-angular>
+                <span>Sao chép</span>
+              </button>
+            </div>
+
+            <p *ngIf="selectedOrder.notes" class="shipping-notes-box">
+              <span class="notes-title">Ghi chú giao nhận:</span> {{ selectedOrder.notes }}
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="order-modal-footer">
+      <button type="button" class="btn-modal-secondary" (click)="closeOrderDetail()">Đóng</button>
+    </div>
   </div>
 </div>
 

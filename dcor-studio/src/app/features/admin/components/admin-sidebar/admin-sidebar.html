@@ -159,6 +159,18 @@
               {{ pendingOrdersCount > 99 ? '99+' : pendingOrdersCount }}
             </span>
             <span
+              *ngIf="sub.href === '/admin/custom-requests' && pendingCustomCount > 0"
+              class="sidebar-sub-badge order-pending-badge"
+              [attr.aria-label]="pendingCustomCount + ' yêu cầu custom chờ xử lý'">
+              {{ pendingCustomCount > 99 ? '99+' : pendingCustomCount }}
+            </span>
+            <span
+              *ngIf="sub.href === '/admin/orders/returns' && pendingReturnsCount > 0"
+              class="sidebar-sub-badge order-pending-badge"
+              [attr.aria-label]="pendingReturnsCount + ' yêu cầu đổi trả chờ xử lý'">
+              {{ pendingReturnsCount > 99 ? '99+' : pendingReturnsCount }}
+            </span>
+            <span
               *ngIf="sub.href === '/admin/appointments/requests' && adminConsultationService.pendingCount() > 0"
               class="sidebar-sub-badge">
               {{ adminConsultationService.pendingCount() > 99 ? '99+' : adminConsultationService.pendingCount() }}

@@ -34,7 +34,25 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   font-size: 14px;
   font-weight: 500;
+  overflow: hidden;
   animation: slideInToast 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pdp-toast::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: currentColor;
+  opacity: 0.55;
+  animation: pdpToastCountdown 3.5s linear forwards;
+}
+
+@keyframes pdpToastCountdown {
+  from { width: 100%; }
+  to { width: 0%; }
 }
 
 @keyframes slideInToast {

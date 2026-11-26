@@ -3,6 +3,9 @@ import prisma from '../lib/prisma';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { promotionController } from './promotion.controller';
 
+const MAX_CART_ITEMS = 30;
+const MAX_ITEM_QUANTITY = 100;
+
 const SYSTEM_OPTION_KEYS = new Set([
   'sku',
   'variantName',
@@ -325,10 +328,39 @@ export const cartController = {
         },
         select: { quantity: true }
       });
-      
+
+      if (!existingItem) {
+        const currentCartCount = await prisma.cartItem.count({
+          where: { customerId }
+        });
+        if (currentCartCount >= MAX_CART_ITEMS) {
+          res.status(400).json({
+            code: 'CART_ITEM_LIMIT_EXCEEDED',
+            message: `Giỏ hàng đã đạt tối đa ${MAX_CART_ITEMS} loại sản phẩm (biến thể) khác nhau. Vui lòng thanh toán hoặc bỏ bớt trước khi thêm mới.`,
+            maxCartItems: MAX_CART_ITEMS
+          });
+          return;
+        }
+      }
+
+      const maxAllowed = Math.min(availableStock, MAX_ITEM_QUANTITY);
       const totalRequested = quantity + (existingItem?.quantity || 0);
-      if (totalRequested > availableStock) {
-        res.status(409).json({ message: `Chỉ còn ${availableStock} sản phẩm trong kho.`, availableStock });
+      if (totalRequested > maxAllowed) {
+        if (availableStock < MAX_ITEM_QUANTITY) {
+          res.status(409).json({
+            code: 'INSUFFICIENT_STOCK',
+            message: `Chỉ còn ${availableStock} sản phẩm trong kho (hiện có ${existingItem?.quantity || 0} trong giỏ).`,
+            availableStock,
+            maxAllowed
+          });
+        } else {
+          res.status(400).json({
+            code: 'CART_ITEM_QUANTITY_LIMIT_EXCEEDED',
+            message: `Mỗi loại sản phẩm chỉ được đặt tối đa ${MAX_ITEM_QUANTITY} chiếc trong giỏ hàng.`,
+            availableStock,
+            maxAllowed
+          });
+        }
         return;
       }
 
@@ -406,11 +438,16 @@ export const cartController = {
 
         if (existingTargetItem && existingTargetItem.id !== currentItem.id) {
           // Trùng biến thể đã có trong giỏ hàng -> Kiểm tra tổng số lượng
+          const maxAllowed = Math.min(newAvailableStock, MAX_ITEM_QUANTITY);
           const mergedQuantity = existingTargetItem.quantity + targetQuantity;
-          if (mergedQuantity > newAvailableStock) {
+          if (mergedQuantity > maxAllowed) {
             res.status(409).json({
-              message: `Không thể đổi sang biến thể này vì sau khi gộp số lượng (${mergedQuantity}) sẽ vượt tồn kho hiện có (Chỉ còn ${newAvailableStock} sản phẩm).`,
-              availableStock: newAvailableStock
+              code: newAvailableStock < MAX_ITEM_QUANTITY ? 'INSUFFICIENT_STOCK' : 'CART_ITEM_QUANTITY_LIMIT_EXCEEDED',
+              message: newAvailableStock < MAX_ITEM_QUANTITY
+                ? `Không thể đổi sang biến thể này vì sau khi gộp số lượng (${mergedQuantity}) sẽ vượt tồn kho hiện có (Chỉ còn ${newAvailableStock} sản phẩm).`
+                : `Không thể đổi sang biến thể này vì tổng số lượng (${mergedQuantity}) vượt giới hạn tối đa ${MAX_ITEM_QUANTITY} chiếc/biến thể.`,
+              availableStock: newAvailableStock,
+              maxAllowed
             });
             return;
           }
@@ -436,10 +473,15 @@ export const cartController = {
           return;
         } else {
           // Chưa có biến thể này -> Cập nhật trực tiếp
-          if (targetQuantity > newAvailableStock) {
+          const maxAllowed = Math.min(newAvailableStock, MAX_ITEM_QUANTITY);
+          if (targetQuantity > maxAllowed) {
             res.status(409).json({
-              message: `Chỉ còn ${newAvailableStock} sản phẩm trong kho.`,
-              availableStock: newAvailableStock
+              code: newAvailableStock < MAX_ITEM_QUANTITY ? 'INSUFFICIENT_STOCK' : 'CART_ITEM_QUANTITY_LIMIT_EXCEEDED',
+              message: newAvailableStock < MAX_ITEM_QUANTITY
+                ? `Chỉ còn ${newAvailableStock} sản phẩm trong kho.`
+                : `Mỗi loại sản phẩm chỉ được đặt tối đa ${MAX_ITEM_QUANTITY} chiếc.`,
+              availableStock: newAvailableStock,
+              maxAllowed
             });
             return;
           }
@@ -469,11 +511,23 @@ export const cartController = {
         }
 
         const availableStock = Math.max(0, currentItem.variant.stock - currentItem.variant.reservedStock);
-        if (quantity > availableStock) {
-          res.status(409).json({
-            message: `Chỉ còn ${availableStock} sản phẩm trong kho.`,
-            availableStock
-          });
+        const maxAllowed = Math.min(availableStock, MAX_ITEM_QUANTITY);
+        if (quantity > maxAllowed) {
+          if (availableStock < MAX_ITEM_QUANTITY) {
+            res.status(409).json({
+              code: 'INSUFFICIENT_STOCK',
+              message: `Chỉ còn ${availableStock} sản phẩm trong kho.`,
+              availableStock,
+              maxAllowed
+            });
+          } else {
+            res.status(400).json({
+              code: 'CART_ITEM_QUANTITY_LIMIT_EXCEEDED',
+              message: `Mỗi loại sản phẩm chỉ được đặt tối đa ${MAX_ITEM_QUANTITY} chiếc trong giỏ hàng.`,
+              availableStock,
+              maxAllowed
+            });
+          }
           return;
         }
 

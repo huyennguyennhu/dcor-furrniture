@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from '../../../../../../../environments/environment';
 
 export type ReturnStatus = 
@@ -523,6 +524,12 @@ export const INITIAL_MOCK_RETURNS: ReturnRequest[] = [
 export class OrdersReturnsMockService {
   private readonly STORAGE_KEY = 'dcor_returns_mock_data_v2';
   private returns: ReturnRequest[] = this.loadInitialData();
+  private returnsSubject = new BehaviorSubject<ReturnRequest[]>(this.returns);
+  public returns$: Observable<ReturnRequest[]> = this.returnsSubject.asObservable();
+
+  getPendingReturnsCount(): number {
+    return this.returns.filter(r => r.status === 'PENDING' || r.status === 'REVIEWING').length;
+  }
 
   constructor() {
     this.fetchFromBackend();
@@ -532,8 +539,9 @@ export class OrdersReturnsMockService {
     try {
       const res = await fetch(`${environment.apiUrl}/returns/admin/all`);
       if (res.ok) {
-        const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0) {
+        const json = await res.json();
+        const rows: any[] = Array.isArray(json) ? json : (json?.data && Array.isArray(json.data) ? json.data : []);
+        if (rows.length > 0) {
           for (const row of rows) {
             const existingIdx = this.returns.findIndex(r => r.id === row.id || r.id === row.returnCode);
             const item = (row.items && row.items.length > 0) ? row.items[0] : null;
@@ -552,7 +560,7 @@ export class OrdersReturnsMockService {
                 name: row.customerName || 'Khách hàng',
                 phone: row.customerPhone || '',
                 email: row.customerEmail || '',
-                address: row.shippingAddress || ''
+                address: row.customerAddress || row.shippingAddress || ''
               },
               item: {
                 name: item?.productName || 'Sản phẩm đổi trả',
@@ -584,6 +592,7 @@ export class OrdersReturnsMockService {
             }
           }
           this.saveToStorage();
+          this.returnsSubject.next([...this.returns]);
         }
       }
     } catch (e) {
@@ -797,6 +806,7 @@ export class OrdersReturnsMockService {
     } catch (e) {
       console.warn('Cannot save returns to localStorage', e);
     }
+    this.returnsSubject.next([...this.returns]);
   }
 
   resetMockData(): void {
@@ -804,6 +814,7 @@ export class OrdersReturnsMockService {
       localStorage.removeItem(this.STORAGE_KEY);
     }
     this.returns = JSON.parse(JSON.stringify(INITIAL_MOCK_RETURNS));
+    this.returnsSubject.next([...this.returns]);
   }
 
   getAll(): ReturnRequest[] {

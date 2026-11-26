@@ -96,16 +96,19 @@ export async function initOrderReturnDatabase(): Promise<void> {
         );
       `);
 
-      // 4. Tạo các chỉ mục
-      await prisma.$executeRawUnsafe(`
-        CREATE INDEX IF NOT EXISTS "idx_order_return_code" ON "OrderReturn"("returnCode");
-        CREATE INDEX IF NOT EXISTS "idx_order_return_order" ON "OrderReturn"("orderNumber");
-        CREATE INDEX IF NOT EXISTS "idx_order_return_customer" ON "OrderReturn"("customerId");
-        CREATE INDEX IF NOT EXISTS "idx_order_return_phone" ON "OrderReturn"("customerPhone");
-        CREATE INDEX IF NOT EXISTS "idx_order_return_status" ON "OrderReturn"("status");
-        CREATE INDEX IF NOT EXISTS "idx_order_return_item_return" ON "OrderReturnItem"("returnId");
-        CREATE INDEX IF NOT EXISTS "idx_order_return_timeline_return" ON "OrderReturnTimeline"("returnId");
-      `);
+      // 4. Tạo các chỉ mục (mỗi lệnh 1 query riêng để tương thích prepared statement PostgreSQL)
+      const indexQueries = [
+        'CREATE INDEX IF NOT EXISTS "idx_order_return_code" ON "OrderReturn"("returnCode")',
+        'CREATE INDEX IF NOT EXISTS "idx_order_return_order" ON "OrderReturn"("orderNumber")',
+        'CREATE INDEX IF NOT EXISTS "idx_order_return_customer" ON "OrderReturn"("customerId")',
+        'CREATE INDEX IF NOT EXISTS "idx_order_return_phone" ON "OrderReturn"("customerPhone")',
+        'CREATE INDEX IF NOT EXISTS "idx_order_return_status" ON "OrderReturn"("status")',
+        'CREATE INDEX IF NOT EXISTS "idx_order_return_item_return" ON "OrderReturnItem"("returnId")',
+        'CREATE INDEX IF NOT EXISTS "idx_order_return_timeline_return" ON "OrderReturnTimeline"("returnId")'
+      ];
+      for (const idxSql of indexQueries) {
+        await prisma.$executeRawUnsafe(idxSql);
+      }
 
       // 5. Kiểm tra nếu chưa có bản ghi nào thì seed 2 bản ghi mẫu ban đầu
       const countRes: any = await prisma.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM "OrderReturn";`);

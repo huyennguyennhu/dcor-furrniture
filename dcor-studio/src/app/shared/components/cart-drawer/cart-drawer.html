@@ -367,7 +367,7 @@
       <div class="voucher-list-section">
         <div class="voucher-list-header">
           <div class="voucher-list-header-left">
-            <lucide-angular [img]="icons.Tag" size="14" color="#C67C4E"></lucide-angular>
+            <lucide-angular [img]="icons.Tag" size="14" color="#b45309"></lucide-angular>
             <span class="voucher-list-title">Mã giảm giá sản phẩm</span>
             <span *ngIf="eligibleProductPromotionsCount > 0" class="voucher-eligible-badge">
               {{ eligibleProductPromotionsCount }} mã khả dụng
@@ -567,14 +567,6 @@
       </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div *ngIf="toastMessage" class="drawer-toast" [ngClass]="toastType" role="alert">
-      <lucide-angular *ngIf="toastType === 'warning'" [img]="icons.AlertTriangle" size="15"></lucide-angular>
-      <lucide-angular *ngIf="toastType === 'error'" [img]="icons.AlertCircle" size="15"></lucide-angular>
-      <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="15"></lucide-angular>
-      <span>{{ toastMessage }}</span>
-    </div>
-
     <!-- Body -->
     <div class="cart-drawer-body" (scroll)="hideVariantTooltip()">
 
@@ -593,7 +585,7 @@
       <!-- Danh sách sản phẩm (Mỗi thẻ chỉ tối đa 2 hàng so với hình ảnh) -->
       <ng-container *ngIf="cartItems.length > 0">
         <div
-          *ngFor="let item of cartItems"
+          *ngFor="let item of cartItems; trackBy: trackByCartItem"
           class="cart-drawer-item-card"
           
           [class.is-disabled]="isItemOutOfStock(item)" [class.is-out-of-stock]="isItemOutOfStock(item)">
@@ -850,4 +842,12 @@
     [style.left.px]="hoveredVariantTooltip.left">
     {{ hoveredVariantTooltip.text }}
   </div>
+</div>
+
+<!-- Floating Toast Notification (nằm ngoài overlay để luôn nổi trên cùng) -->
+<div *ngIf="toastMessage" class="drawer-toast" [ngClass]="toastType" role="alert" (click)="$event.stopPropagation()">
+  <lucide-angular *ngIf="toastType === 'warning'" [img]="icons.AlertTriangle" size="16"></lucide-angular>
+  <lucide-angular *ngIf="toastType === 'error'" [img]="icons.AlertCircle" size="16"></lucide-angular>
+  <lucide-angular *ngIf="toastType === 'success'" [img]="icons.CheckCircle2" size="16"></lucide-angular>
+  <span>{{ toastMessage }}</span>
 </div>

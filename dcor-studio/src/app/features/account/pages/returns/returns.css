@@ -218,15 +218,53 @@
   color: var(--color-primary, #765337);
 }
 
-/* ALERTS */
+/* ALERTS -> Floating Toast with Bottom Countdown */
 .alert {
+  position: fixed;
+  top: 104px;
+  right: 24px;
+  z-index: 999999;
+  min-width: 280px;
+  max-width: 440px;
+  width: max-content;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 16px;
-  border-radius: var(--radius-control, 8px);
+  padding: 14px 18px;
+  border-radius: 12px;
   font-size: 14px;
-  margin-bottom: 20px;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: returnsToastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.alert::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: currentColor;
+  opacity: 0.65;
+  animation: returnsToastCountdown 4s linear forwards;
+}
+
+@keyframes returnsToastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes returnsToastCountdown {
+  from { width: 100%; }
+  to { width: 0%; }
 }
 
 .alert-success {
@@ -406,7 +444,7 @@
 }
 
 .topbar-custom-tag.topbar-tag-refund {
-  background: #B45309;
+  background: #FAF7F5;
   border-color: rgba(180, 83, 9, 0.3);
 }
 
@@ -537,6 +575,8 @@
 .item-img-wrap {
   width: 58px;
   height: 58px;
+  padding: 5px;
+  box-sizing: border-box;
   border-radius: 6px;
   overflow: hidden;
   background: #FAF7F2;
@@ -550,7 +590,9 @@
 .item-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  display: block;
 }
 
 .item-details {
@@ -648,6 +690,8 @@
   font-size: 12.5px;
   font-weight: 500;
   text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
   transition: all 0.2s ease;
 }
 
@@ -1717,5 +1761,278 @@
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   object-fit: contain;
+}
+
+/* ========================================================= */
+/* POPUP CHI TIẾT ĐƠN HÀNG GỐC TẠI CHỖ (CHUẨN DCOR)          */
+/* ========================================================= */
+.order-status-chip.status-delivered {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}
+
+.order-status-chip.status-shipped {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.order-status-chip.status-processing {
+  background: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.order-status-chip.status-cancelled {
+  background: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+}
+
+.order-status-chip.status-pending,
+.order-status-chip.status-waiting {
+  background: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+}
+
+.order-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.order-item-card {
+  display: flex;
+  gap: 14px;
+  padding: 12px 14px;
+  background: #FAF7F5;
+  border: 1px solid #EAE1D7;
+  border-radius: 10px;
+  align-items: center;
+}
+
+.order-item-card .item-thumb-box {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 1px solid #EAE1D7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.order-item-card .item-thumb-img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+}
+
+.order-item-card .item-details-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-item-card .item-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.order-item-card .item-product-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1F2937;
+  margin: 0;
+}
+
+.order-item-card .item-price-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #765337;
+  white-space: nowrap;
+}
+
+.order-item-card .item-row-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #6B7280;
+}
+
+.order-item-card .item-variant-desc {
+  color: #6B7280;
+}
+
+.order-item-card .item-qty-tag {
+  font-weight: 600;
+  color: #4B5563;
+}
+
+.order-finance-section {
+  background: #FFFFFF;
+  border: 1px solid #EAE1D7;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.finance-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13.5px;
+  color: #4B5563;
+}
+
+.finance-data-row.total-amount-row {
+  border-top: 1px dashed #E5E7EB;
+  margin-top: 8px;
+  padding-top: 12px;
+}
+
+.total-amount-row .total-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+.total-amount-row .total-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #BC5F13;
+}
+
+.finance-data-row.discount-row .discount-text {
+  color: #10B981;
+  font-weight: 600;
+}
+
+.finance-data-row.payment-method-row {
+  margin-top: 4px;
+  font-size: 12.5px;
+  color: #6B7280;
+}
+
+.order-shipping-card {
+  background: #FAF7F5;
+  border: 1px solid #EAE1D7;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.shipping-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.shipping-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shipping-card-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: #322116;
+  margin: 0;
+}
+
+.shipping-provider-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #E5E7EB;
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.shipping-recipient-row {
+  font-size: 13.5px;
+  color: #1F2937;
+  margin-bottom: 4px;
+}
+
+.shipping-address-text {
+  font-size: 13px;
+  color: #4B5563;
+  margin: 0 0 8px;
+  line-height: 1.4;
+}
+
+.shipping-tracking-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  background: #FFFFFF;
+  border: 1px solid #EAE1D7;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.btn-copy-chip {
+  background: transparent;
+  border: none;
+  color: #765337;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0;
+}
+
+.shipping-notes-box {
+  font-size: 12.5px;
+  color: #4B5563;
+  margin: 8px 0 0;
+}
+
+.order-modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid #EAE1D7;
+  background: #FAF7F5;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-modal-secondary {
+  padding: 9px 20px;
+  border-radius: 8px;
+  border: 1px solid #D1D5DB;
+  background: #FFFFFF;
+  color: #374151;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-modal-secondary:hover {
+  background: #F3F4F6;
+  border-color: #9CA3AF;
 }
 

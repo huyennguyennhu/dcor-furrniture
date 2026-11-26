@@ -193,6 +193,70 @@ export const orderReturnController = {
         return;
       }
 
+      // Tự động đồng bộ các đơn có trạng thái đổi trả từ Order sang OrderReturn nếu chưa có
+      try {
+        const returnedOrders: any[] = await prisma.order.findMany({
+          where: {
+            status: { in: ['RETURNED', 'RETURNING', 'RETURN_REQUESTED'] }
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        for (const ord of returnedOrders) {
+          const exists = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT id FROM "OrderReturn" WHERE "orderNumber" = $1 LIMIT 1`,
+            ord.orderNumber
+          );
+          if (!exists || exists.length === 0) {
+            const firstItem = ord.items && ord.items.length > 0 ? ord.items[0] : null;
+            const retCode = `RMA-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${ord.orderNumber.replace(/[^0-9]/g, '').slice(-4) || '1001'}`;
+            const retId = `ret_sync_${ord.id}`;
+            const retStatus = ord.status === 'RETURNED' ? 'COMPLETED' : (ord.status === 'RETURNING' ? 'RETURNING' : 'PENDING');
+            const retType = 'REFUND';
+            const reason = 'Yêu cầu đổi trả từ khách hàng';
+            const customerName = (ord as any).receiverName || (ord as any).customerName || 'Khách hàng';
+            const customerPhone = ord.phone || (ord as any).receiverPhone || '';
+            const customerEmail = ord.email || '';
+            const customerAddress = (ord as any).detailAddress || (ord as any).shippingAddress || '';
+
+            await prisma.$executeRawUnsafe(`
+              INSERT INTO "OrderReturn" (
+                "id", "returnCode", "orderId", "orderNumber", "customerId", "customerName", "customerPhone",
+                "customerEmail", "customerAddress", "returnType", "status", "reason", "detailedReason",
+                "proofImages", "refundAmount", "createdAt", "updatedAt"
+              ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7,
+                $8, $9, $10, $11, $12, $13,
+                '[]'::jsonb, $14, $15, NOW()
+              ) ON CONFLICT DO NOTHING;
+            `,
+              retId, retCode, ord.id, ord.orderNumber, ord.customerId, customerName, customerPhone,
+              customerEmail, customerAddress, retType, retStatus, reason, 'Đồng bộ từ đơn hàng ' + ord.status,
+              Number(ord.totalAmount || 0), ord.createdAt || new Date()
+            );
+
+            if (firstItem) {
+              await prisma.$executeRawUnsafe(`
+                INSERT INTO "OrderReturnItem" (
+                  "id", "returnId", "orderItemId", "productId", "productName", "productSku",
+                  "variantName", "quantity", "unitPrice", "totalPrice", "productImage", "createdAt"
+                ) VALUES (
+                  $1, $2, $3, $4, $5, $6,
+                  $7, $8, $9, $10, $11, NOW()
+                ) ON CONFLICT DO NOTHING;
+              `,
+                `ret_item_sync_${firstItem.id}`, retId, firstItem.id, firstItem.productId,
+                firstItem.productName, firstItem.sku || null, firstItem.variantDescription || null,
+                firstItem.quantity || 1, Number(firstItem.price || 0), Number(firstItem.price || 0) * (firstItem.quantity || 1),
+                firstItem.imageUrl || null
+              );
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn('Lỗi auto sync đơn đổi trả sang OrderReturn:', syncErr);
+      }
+
       const rows: any[] = await withDbRetry(() => prisma.$queryRawUnsafe(`
         SELECT r.*,
                COALESCE(
@@ -239,6 +303,70 @@ export const orderReturnController = {
   getReturnDetail: async (req: Request, res: Response): Promise<void> => {
     try {
       const { id } = req.params;
+
+      // Tự động đồng bộ các đơn có trạng thái đổi trả từ Order sang OrderReturn nếu chưa có
+      try {
+        const returnedOrders: any[] = await prisma.order.findMany({
+          where: {
+            status: { in: ['RETURNED', 'RETURNING', 'RETURN_REQUESTED'] }
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        for (const ord of returnedOrders) {
+          const exists = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT id FROM "OrderReturn" WHERE "orderNumber" = $1 LIMIT 1`,
+            ord.orderNumber
+          );
+          if (!exists || exists.length === 0) {
+            const firstItem = ord.items && ord.items.length > 0 ? ord.items[0] : null;
+            const retCode = `RMA-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${ord.orderNumber.replace(/[^0-9]/g, '').slice(-4) || '1001'}`;
+            const retId = `ret_sync_${ord.id}`;
+            const retStatus = ord.status === 'RETURNED' ? 'COMPLETED' : (ord.status === 'RETURNING' ? 'RETURNING' : 'PENDING');
+            const retType = 'REFUND';
+            const reason = 'Yêu cầu đổi trả từ khách hàng';
+            const customerName = (ord as any).receiverName || (ord as any).customerName || 'Khách hàng';
+            const customerPhone = ord.phone || (ord as any).receiverPhone || '';
+            const customerEmail = ord.email || '';
+            const customerAddress = (ord as any).detailAddress || (ord as any).shippingAddress || '';
+
+            await prisma.$executeRawUnsafe(`
+              INSERT INTO "OrderReturn" (
+                "id", "returnCode", "orderId", "orderNumber", "customerId", "customerName", "customerPhone",
+                "customerEmail", "customerAddress", "returnType", "status", "reason", "detailedReason",
+                "proofImages", "refundAmount", "createdAt", "updatedAt"
+              ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7,
+                $8, $9, $10, $11, $12, $13,
+                '[]'::jsonb, $14, $15, NOW()
+              ) ON CONFLICT DO NOTHING;
+            `,
+              retId, retCode, ord.id, ord.orderNumber, ord.customerId, customerName, customerPhone,
+              customerEmail, customerAddress, retType, retStatus, reason, 'Đồng bộ từ đơn hàng ' + ord.status,
+              Number(ord.totalAmount || 0), ord.createdAt || new Date()
+            );
+
+            if (firstItem) {
+              await prisma.$executeRawUnsafe(`
+                INSERT INTO "OrderReturnItem" (
+                  "id", "returnId", "orderItemId", "productId", "productName", "productSku",
+                  "variantName", "quantity", "unitPrice", "totalPrice", "productImage", "createdAt"
+                ) VALUES (
+                  $1, $2, $3, $4, $5, $6,
+                  $7, $8, $9, $10, $11, NOW()
+                ) ON CONFLICT DO NOTHING;
+              `,
+                `ret_item_sync_${firstItem.id}`, retId, firstItem.id, firstItem.productId,
+                firstItem.productName, firstItem.sku || null, firstItem.variantDescription || null,
+                firstItem.quantity || 1, Number(firstItem.price || 0), Number(firstItem.price || 0) * (firstItem.quantity || 1),
+                firstItem.imageUrl || null
+              );
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn('Lỗi auto sync đơn đổi trả sang OrderReturn:', syncErr);
+      }
 
       const rows: any[] = await withDbRetry(() => prisma.$queryRawUnsafe(`
         SELECT r.*,
@@ -326,6 +454,70 @@ export const orderReturnController = {
       const limitIdx = params.length;
       params.push(offset);
       const offsetIdx = params.length;
+
+      // Tự động đồng bộ các đơn có trạng thái đổi trả từ Order sang OrderReturn nếu chưa có
+      try {
+        const returnedOrders: any[] = await prisma.order.findMany({
+          where: {
+            status: { in: ['RETURNED', 'RETURNING', 'RETURN_REQUESTED'] }
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        for (const ord of returnedOrders) {
+          const exists = await prisma.$queryRawUnsafe<any[]>(
+            `SELECT id FROM "OrderReturn" WHERE "orderNumber" = $1 LIMIT 1`,
+            ord.orderNumber
+          );
+          if (!exists || exists.length === 0) {
+            const firstItem = ord.items && ord.items.length > 0 ? ord.items[0] : null;
+            const retCode = `RMA-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${ord.orderNumber.replace(/[^0-9]/g, '').slice(-4) || '1001'}`;
+            const retId = `ret_sync_${ord.id}`;
+            const retStatus = ord.status === 'RETURNED' ? 'COMPLETED' : (ord.status === 'RETURNING' ? 'RETURNING' : 'PENDING');
+            const retType = 'REFUND';
+            const reason = 'Yêu cầu đổi trả từ khách hàng';
+            const customerName = (ord as any).receiverName || (ord as any).customerName || 'Khách hàng';
+            const customerPhone = ord.phone || (ord as any).receiverPhone || '';
+            const customerEmail = ord.email || '';
+            const customerAddress = (ord as any).detailAddress || (ord as any).shippingAddress || '';
+
+            await prisma.$executeRawUnsafe(`
+              INSERT INTO "OrderReturn" (
+                "id", "returnCode", "orderId", "orderNumber", "customerId", "customerName", "customerPhone",
+                "customerEmail", "customerAddress", "returnType", "status", "reason", "detailedReason",
+                "proofImages", "refundAmount", "createdAt", "updatedAt"
+              ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7,
+                $8, $9, $10, $11, $12, $13,
+                '[]'::jsonb, $14, $15, NOW()
+              ) ON CONFLICT DO NOTHING;
+            `,
+              retId, retCode, ord.id, ord.orderNumber, ord.customerId, customerName, customerPhone,
+              customerEmail, customerAddress, retType, retStatus, reason, 'Đồng bộ từ đơn hàng ' + ord.status,
+              Number(ord.totalAmount || 0), ord.createdAt || new Date()
+            );
+
+            if (firstItem) {
+              await prisma.$executeRawUnsafe(`
+                INSERT INTO "OrderReturnItem" (
+                  "id", "returnId", "orderItemId", "productId", "productName", "productSku",
+                  "variantName", "quantity", "unitPrice", "totalPrice", "productImage", "createdAt"
+                ) VALUES (
+                  $1, $2, $3, $4, $5, $6,
+                  $7, $8, $9, $10, $11, NOW()
+                ) ON CONFLICT DO NOTHING;
+              `,
+                `ret_item_sync_${firstItem.id}`, retId, firstItem.id, firstItem.productId,
+                firstItem.productName, firstItem.sku || null, firstItem.variantDescription || null,
+                firstItem.quantity || 1, Number(firstItem.price || 0), Number(firstItem.price || 0) * (firstItem.quantity || 1),
+                firstItem.imageUrl || null
+              );
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn('Lỗi auto sync đơn đổi trả sang OrderReturn:', syncErr);
+      }
 
       const rows: any[] = await withDbRetry(() => prisma.$queryRawUnsafe(`
         SELECT r.*,

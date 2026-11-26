@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
@@ -42,6 +42,7 @@ import { applyImageErrorFallback } from '../../../../shared/utils/image-fallback
 import { Subscription } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { ALL_VIETNAM_PROVINCE_NAMES, getDistrictsForProvince, getWardsForDistrict, getWardsForProvince } from '../../../../shared/data/vietnam-administrative.data';
+import { CustomDropdownComponent } from '../../../../shared/components/custom-dropdown/custom-dropdown';
 
 interface SavedAddress {
   id: string;
@@ -59,7 +60,7 @@ interface SavedAddress {
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, CustomDropdownComponent],
   templateUrl: './checkout.html',
   styleUrls: ['./checkout.css']
 })
@@ -299,7 +300,27 @@ export class CheckoutComponent implements OnInit, OnDestroy {
 
   // Đặt hàng & Chống bấm đúp
   isSubmittingOrder = false;
-  orderErrorMessage: string | null = null;
+  private _orderErrorMessage: string | null = null;
+  private orderErrorTimer: ReturnType<typeof setTimeout> | null = null;
+
+  get orderErrorMessage(): string | null {
+    return this._orderErrorMessage;
+  }
+
+  set orderErrorMessage(val: string | null) {
+    this._orderErrorMessage = val;
+    if (this.orderErrorTimer) {
+      clearTimeout(this.orderErrorTimer);
+      this.orderErrorTimer = null;
+    }
+    if (val) {
+      this.orderErrorTimer = setTimeout(() => {
+        this._orderErrorMessage = null;
+        this.orderErrorTimer = null;
+        this.cdr.detectChanges();
+      }, 4000);
+    }
+  }
 
   // Dữ liệu Đơn hàng sau khi đặt thành công
   createdOrder: {
@@ -432,6 +453,10 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.sub.unsubscribe();
     if (this.otpTimer) {
       clearInterval(this.otpTimer);
+    }
+    if (this.orderErrorTimer) {
+      clearTimeout(this.orderErrorTimer);
+      this.orderErrorTimer = null;
     }
   }
 
@@ -1039,6 +1064,113 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       ? getWardsForDistrict(this.newAddress.province, this.newAddress.district)
       : getWardsForProvince(this.newAddress.province);
     this.newAddress.ward = this.newAddressWards.length > 0 ? this.newAddressWards[0] : '';
+  }
+
+  // --- Custom Searchable & Auto-Position Dropdowns cho Sổ địa chỉ ---
+  openAddrDropdown: 'province' | 'ward' | null = null;
+  addrDropdownDropUp = false;
+  provinceSearchQuery = '';
+  wardSearchQuery = '';
+  provinceDisplayLimit = 20;
+  wardDisplayLimit = 20;
+
+  private normalizeViText(str: string): string {
+    return (str || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase()
+      .trim();
+  }
+
+  get filteredNewAddressProvinces(): string[] {
+    const q = this.normalizeViText(this.provinceSearchQuery);
+    if (!q) return this.provinces;
+    return this.provinces.filter(p => this.normalizeViText(p).includes(q));
+  }
+
+  get visibleNewAddressProvinces(): string[] {
+    return this.filteredNewAddressProvinces.slice(0, this.provinceDisplayLimit);
+  }
+
+  get filteredNewAddressWards(): string[] {
+    const q = this.normalizeViText(this.wardSearchQuery);
+    if (!q) return this.newAddressWards;
+    return this.newAddressWards.filter(w => this.normalizeViText(w).includes(q));
+  }
+
+  get visibleNewAddressWards(): string[] {
+    return this.filteredNewAddressWards.slice(0, this.wardDisplayLimit);
+  }
+
+  toggleAddrDropdown(type: 'province' | 'ward', event: MouseEvent, triggerEl: HTMLElement): void {
+    event.stopPropagation();
+    if (this.openAddrDropdown === type) {
+      this.openAddrDropdown = null;
+      return;
+    }
+
+    this.openAddrDropdown = type;
+    if (type === 'province') {
+      this.provinceSearchQuery = '';
+      this.provinceDisplayLimit = 20;
+    } else {
+      this.wardSearchQuery = '';
+      this.wardDisplayLimit = 20;
+    }
+
+    // Tự động tính không gian trên/dưới để quyết định xổ lên hay xổ xuống
+    if (triggerEl && typeof window !== 'undefined') {
+      const rect = triggerEl.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      this.addrDropdownDropUp = spaceBelow < 270 && spaceAbove > spaceBelow;
+    } else {
+      this.addrDropdownDropUp = false;
+    }
+  }
+
+  onAddrDropdownScroll(type: 'province' | 'ward', event: Event): void {
+    const el = event.target as HTMLElement;
+    if (!el) return;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
+      if (type === 'province' && this.provinceDisplayLimit < this.filteredNewAddressProvinces.length) {
+        this.provinceDisplayLimit += 20;
+      } else if (type === 'ward' && this.wardDisplayLimit < this.filteredNewAddressWards.length) {
+        this.wardDisplayLimit += 20;
+      }
+    }
+  }
+
+  loadMoreAddrOptions(type: 'province' | 'ward', event: Event): void {
+    event.stopPropagation();
+    if (type === 'province') {
+      this.provinceDisplayLimit += 20;
+    } else {
+      this.wardDisplayLimit += 20;
+    }
+  }
+
+  selectNewAddressProvince(prov: string, event: Event): void {
+    event.stopPropagation();
+    this.newAddress.province = prov;
+    this.onNewAddressProvinceChange();
+    this.openAddrDropdown = null;
+  }
+
+  selectNewAddressWard(ward: string, event: Event): void {
+    event.stopPropagation();
+    this.newAddress.ward = ward;
+    this.onNewAddressWardChange();
+    this.openAddrDropdown = null;
+  }
+
+  @HostListener('document:click')
+  onDocumentClickCloseDropdown(): void {
+    if (this.openAddrDropdown) {
+      this.openAddrDropdown = null;
+    }
   }
 
   /** Tự động tải tất cả địa chỉ gắn với SĐT của tài khoản đã đăng nhập */

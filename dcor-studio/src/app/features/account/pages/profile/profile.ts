@@ -122,8 +122,42 @@ export class ProfileComponent implements OnInit, OnDestroy {
   } = {};
 
   // Thông báo chung
-  successMessage = '';
-  errorMessage = '';
+  private _successMessage = '';
+  private _errorMessage = '';
+  private alertTimer: ReturnType<typeof setTimeout> | null = null;
+
+  get successMessage(): string {
+    return this._successMessage;
+  }
+
+  set successMessage(val: string) {
+    this._successMessage = val;
+    this.scheduleAlertAutoClear();
+  }
+
+  get errorMessage(): string {
+    return this._errorMessage;
+  }
+
+  set errorMessage(val: string) {
+    this._errorMessage = val;
+    this.scheduleAlertAutoClear();
+  }
+
+  private scheduleAlertAutoClear(): void {
+    if (this.alertTimer) {
+      clearTimeout(this.alertTimer);
+      this.alertTimer = null;
+    }
+    if (this._successMessage || this._errorMessage) {
+      this.alertTimer = setTimeout(() => {
+        this._successMessage = '';
+        this._errorMessage = '';
+        this.alertTimer = null;
+        this.cdr.markForCheck();
+      }, 4000);
+    }
+  }
 
   private sub = new Subscription();
 
@@ -922,14 +956,22 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   clearAlerts(): void {
-    this.successMessage = '';
-    this.errorMessage = '';
+    if (this.alertTimer) {
+      clearTimeout(this.alertTimer);
+      this.alertTimer = null;
+    }
+    this._successMessage = '';
+    this._errorMessage = '';
     this.profileErrors = {};
     this.passwordErrors = {};
   }
 
   ngOnDestroy(): void {
     if (this.guestTimer) clearInterval(this.guestTimer);
+    if (this.alertTimer) {
+      clearTimeout(this.alertTimer);
+      this.alertTimer = null;
+    }
     this.sub.unsubscribe();
   }
 }

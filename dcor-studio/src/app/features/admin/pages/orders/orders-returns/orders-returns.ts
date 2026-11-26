@@ -72,7 +72,7 @@ export class OrdersReturnsComponent implements OnInit {
 
   // Pagination
   currentPage = 1;
-  pageSize = 8;
+  pageSize = 20;
 
   // Toast
   toastMessage = '';
@@ -118,6 +118,9 @@ export class OrdersReturnsComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.returnsService.fetchFromBackend().then(() => {
+      this.cdr.markForCheck();
+    });
     this.ordersService.orders$.subscribe(orders => {
       if (orders && orders.length > 0) {
         orders.forEach(order => {

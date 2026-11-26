@@ -1206,16 +1206,20 @@
       </section>
 
       <!-- =========================================================================
-           CARD 7: BÀN GIAO, THU 70% & KÍCH HOẠT BẢO HÀNH (BƯỚC 7)
+           CARD 7: QUYẾT TOÁN 70% & KÍCH HOẠT BẢO HÀNH (BƯỚC 7)
            ========================================================================= -->
       <section class="v2-card" *ngIf="isDeliveryCardVisible()">
         <div class="v2-card-header">
           <div class="card-title-group">
-            <lucide-angular [img]="icons.Truck" size="18" class="text-accent"></lucide-angular>
-            <h3>Bàn Giao Lắp Đặt, Thu 70% &amp; Kích Hoạt Bảo Hành</h3>
+            <lucide-angular [img]="icons.ShieldCheck" size="18" class="text-accent"></lucide-angular>
+            <h3>Quyết Toán 70% &amp; Kích Hoạt Bảo Hành</h3>
           </div>
-          <span class="delivery-status-badge" [class.badge-completed]="request.status === 'COMPLETED'">
-            {{ request.status === 'COMPLETED' ? '✓ Đã bàn giao & Kích hoạt bảo hành' : '🚚 Đang điều phối giao hàng & Thu 70%' }}
+          <span class="delivery-status-badge" 
+            [class.badge-completed]="request.status === 'COMPLETED'"
+            [style.color]="request.status === 'COMPLETED' ? '#15803D' : getLinkedOrderStatusMeta().color"
+            [style.background]="request.status === 'COMPLETED' ? '#F0FDF4' : getLinkedOrderStatusMeta().bgColor"
+            [style.borderColor]="request.status === 'COMPLETED' ? '#BBF7D0' : getLinkedOrderStatusMeta().borderColor">
+            {{ request.status === 'COMPLETED' ? '✓ Đã quyết toán 100% & Kích hoạt bảo hành' : (isLinkedOrderDelivered() ? '📦 Đã giao hàng — Chờ thu 70% & Kích hoạt BH' : '🚚 ' + getLinkedOrderStatusMeta().label) }}
           </span>
         </div>
 
@@ -1599,14 +1603,30 @@
           <span>Lên đơn hàng</span>
         </button>
 
-        <!-- Bước 7: QC đạt chuẩn & Đã lên đơn -> Giao hàng, thu 70% & Bảo hành -->
+        <!-- Bước 7: QC đạt chuẩn & Đã lên đơn -> Nếu đơn hàng chưa giao: Hiển thị box chờ vận chuyển giao hàng -->
+        <div class="waiting-client-sign-box" *ngIf="request.status === 'QC_PASSED' && !isLinkedOrderDelivered()">
+          <div class="wcs-icon-pulse">
+            <lucide-angular [img]="icons.Truck" size="16"></lucide-angular>
+          </div>
+          <div class="wcs-info">
+            <span class="wcs-title">Đang vận chuyển &amp; giao hàng</span>
+            <span class="wcs-desc">Đơn hàng <strong>#{{ request.generatedOrderNumber }}</strong> đang được điều phối vận chuyển (Trạng thái: <strong>{{ getLinkedOrderStatusMeta().label }}</strong>). Nút quyết toán thu 70% sẽ mở khóa khi khách nhận hàng thành công (DELIVERED).</span>
+          </div>
+          <button type="button" class="btn-goto-order-pill" (click)="goToOrder()" title="Xem chi tiết đơn hàng vận chuyển">
+            <lucide-angular [img]="icons.ExternalLink" size="13"></lucide-angular>
+            <span>Xem đơn hàng</span>
+          </button>
+        </div>
+
+        <!-- Bước 7: Đơn hàng đã giao thành công (DELIVERED/COMPLETED) -> Mở khóa nút Thu 70% & Kích hoạt BH -->
         <button 
           type="button" 
           class="btn-primary-action btn-success-action" 
-          *ngIf="request.status === 'QC_PASSED'" 
-          (click)="openModal('DELIVERY')">
-          <lucide-angular [img]="icons.Truck" size="15"></lucide-angular>
-          <span>Giao hàng, Thu 70% & Kích hoạt BH</span>
+          *ngIf="request.status === 'QC_PASSED' && isLinkedOrderDelivered()" 
+          (click)="openModal('DELIVERY')"
+          title="Đơn hàng đã giao thành công! Bấm để thu 70% còn lại và kích hoạt bảo hành chính hãng">
+          <lucide-angular [img]="icons.ShieldCheck" size="15"></lucide-angular>
+          <span>Thu 70% & Kích hoạt BH</span>
         </button>
       </ng-container>
     </div>
@@ -2149,13 +2169,13 @@
     </div>
   </div>
 
-  <!-- MODAL BƯỚC 7: BÀN GIAO, THU 70% & KÍCH HOẠT BẢO HÀNH -->
+  <!-- MODAL BƯỚC 7: QUYẾT TOÁN 70% & KÍCH HOẠT BẢO HÀNH -->
   <div class="dcor-modal-backdrop" *ngIf="activeModal === 'DELIVERY'" (click)="closeModal()">
     <div class="dcor-modal-card modal-lg" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-header-title">
-          <div class="modal-step-badge">Bước 7: Bàn giao & Bảo hành</div>
-          <h3>Nghiệm Thu Bàn Giao, Thu 70% & Kích Hoạt Bảo Hành 5 Năm</h3>
+          <div class="modal-step-badge">Bước 7: Quyết toán & Bảo hành</div>
+          <h3>Quyết Toán 70% Còn Lại & Kích Hoạt Bảo Hành 5 Năm</h3>
         </div>
         <button type="button" class="modal-close-btn" (click)="closeModal()"><lucide-angular [img]="icons.X" size="18"></lucide-angular></button>
       </div>
@@ -2164,6 +2184,7 @@
         <div class="delivery-receipt-preview">
           <p>Khách hàng: <strong>{{ request.customerName }}</strong> • SĐT: <strong>{{ request.customerPhone }}</strong></p>
           <p>Địa chỉ lắp đặt: <strong>{{ request.customerAddress }}</strong></p>
+          <p>Đơn hàng liên kết: <strong>#{{ request.generatedOrderNumber }}</strong> (Trạng thái: <span class="text-success font-bold">{{ getLinkedOrderStatusMeta().label }}</span>)</p>
           <p>Số tiền thu đợt 2 (70%): <strong class="text-accent">{{ formatVND(deliveryForm.remainingAmount) }}</strong></p>
           <p>Mã bảo hành điện tử cấp phát: <strong class="text-success">{{ deliveryForm.warrantyCode }}</strong> (Thời hạn 5 năm)</p>
         </div>

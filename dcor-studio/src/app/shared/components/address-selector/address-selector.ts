@@ -12,6 +12,7 @@ import {
   Search 
 } from 'lucide-angular';
 import { ALL_VIETNAM_PROVINCE_NAMES, getWardsForProvince } from '../../data/vietnam-administrative.data';
+import { CustomDropdownComponent } from '../custom-dropdown/custom-dropdown';
 import { environment } from '../../../../environments/environment';
 
 export interface AddressInfo {
@@ -31,7 +32,7 @@ export interface AddressInfo {
 @Component({
   selector: 'app-address-selector',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, CustomDropdownComponent],
   templateUrl: './address-selector.html',
   styleUrls: ['./address-selector.css']
 })

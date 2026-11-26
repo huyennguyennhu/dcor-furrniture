@@ -82,7 +82,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: var(--radius-pill, 999px);
-  background: #C67C4E;
+  background: #b45309;
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -146,8 +146,8 @@
 }
 
 .custom-checkbox:checked {
-  background: #C67C4E;
-  border-color: #C67C4E;
+  background: #b45309;
+  border-color: #b45309;
 }
 
 .custom-checkbox:checked::after {
@@ -167,34 +167,72 @@
   cursor: not-allowed;
 }
 
-/* --- Toast Notification --- */
+/* --- Floating Toast Notification --- */
 .drawer-toast {
-  padding: 6px 12px;
-  margin: 6px 12px 0;
-  border-radius: var(--radius-sm, 6px);
-  font-size: 12px;
-  font-weight: 500;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999999;
+  min-width: 260px;
+  max-width: 420px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 6px;
-  animation: slideDownFade 0.2s ease;
-  flex-shrink: 0;
+  gap: 8px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+  pointer-events: auto;
+  overflow: hidden;
+  animation: cartToastDropIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-toast::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  width: 100%;
+  background: currentColor;
+  opacity: 0.55;
+  animation: drawerToastCountdown 3s linear forwards;
+}
+
+@keyframes drawerToastCountdown {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+@keyframes cartToastDropIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 .drawer-toast.warning {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-hover);
-  border: 1px solid var(--color-warning);
+  background: var(--color-warning-bg, #FFF8E5);
+  color: var(--color-warning-hover, #B45309);
+  border: 1px solid var(--color-warning, #F2BF3D);
 }
 
 .drawer-toast.error {
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
+  background: var(--color-danger-bg, #FFE8E8);
+  color: var(--color-danger, #C42326);
+  border: 1px solid #FECACA;
 }
 
 .drawer-toast.success {
-  background: var(--color-success-bg);
-  color: var(--color-success);
+  background: var(--color-success-bg, #E9F8E9);
+  color: var(--color-success, #00A30B);
+  border: 1px solid #BBF7D0;
 }
 
 /* --- Body (Cuộn danh sách sản phẩm) --- */
@@ -246,7 +284,7 @@
 .btn-continue {
   min-height: 36px;
   padding: 0 18px;
-  background: #C67C4E;
+  background: #b45309;
   color: #fff;
   border: none;
   border-radius: var(--radius-control);
@@ -275,7 +313,6 @@
   flex-direction: column;
   gap: 5px;
   transition: border-color var(--transition-fast), background var(--transition-fast);
-  animation: fadeSlideIn 0.2s ease;
 }
 
 .cart-drawer-item-card:hover {
@@ -317,7 +354,7 @@
 }
 
 .item-card-name:hover {
-  color: #C67C4E;
+  color: #b45309;
 }
 
 .item-remove-btn {
@@ -414,8 +451,8 @@
 
 .variant-badge-btn:hover:not(:disabled) {
   background: rgba(198, 124, 78, 0.12);
-  border-color: #C67C4E;
-  color: #C67C4E;
+  border-color: #b45309;
+  color: #b45309;
 }
 
 .variant-badge-btn:disabled {
@@ -531,7 +568,7 @@
 
 .qty-btn:hover:not(:disabled) {
   background: rgba(198, 124, 78, 0.15);
-  color: #C67C4E;
+  color: #b45309;
 }
 
 .qty-btn:disabled {
@@ -688,7 +725,7 @@
 .voucher-applied-chip.product-chip {
   background: rgba(198, 124, 78, 0.14);
   border: 1px solid rgba(198, 124, 78, 0.32);
-  color: #C67C4E;
+  color: #b45309;
 }
 
 .voucher-applied-chip.freeship-chip {
@@ -760,7 +797,7 @@
   background: rgba(198, 124, 78, 0.08);
   font-size: 12px;
   font-weight: 600;
-  color: #C67C4E;
+  color: #b45309;
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
 }
@@ -768,7 +805,7 @@
 .voucher-open-btn:hover,
 .drawer-voucher-trigger-bar:not(.has-voucher):hover .voucher-open-btn {
   background: rgba(198, 124, 78, 0.16);
-  border-color: #C67C4E;
+  border-color: #b45309;
 }
 
 .voucher-open-btn:active {
@@ -793,8 +830,8 @@
 
 .voucher-nav-btn:hover {
   background: rgba(198, 124, 78, 0.14);
-  border-color: #C67C4E;
-  color: #C67C4E;
+  border-color: #b45309;
+  color: #b45309;
   box-shadow: 0 2px 8px rgba(198, 124, 78, 0.18);
 }
 
@@ -815,7 +852,7 @@
 .voucher-open-btn:hover .voucher-nav-arrow,
 .drawer-voucher-trigger-bar:not(.has-voucher):hover .voucher-open-btn .voucher-nav-arrow {
   transform: translateX(2px);
-  color: #C67C4E;
+  color: #b45309;
 }
 
 /* ============================================================
@@ -845,7 +882,7 @@
   background: rgba(198, 124, 78, 0.08);
   border: 1px dashed rgba(198, 124, 78, 0.35);
   border-radius: 8px;
-  color: #C67C4E;
+  color: #b45309;
   font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
@@ -854,7 +891,7 @@
 
 .btn-toggle-see-more:hover {
   background: rgba(198, 124, 78, 0.16);
-  border-color: #C67C4E;
+  border-color: #b45309;
 }
 
 .freeship-section {
@@ -899,13 +936,13 @@
 }
 
 .voucher-text-input:focus {
-  border-color: #C67C4E;
+  border-color: #b45309;
 }
 
 .btn-apply-custom {
   height: 38px;
   padding: 0 16px;
-  background: #C67C4E;
+  background: #b45309;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -975,7 +1012,7 @@
 }
 
 .voucher-ticket-card.is-eligible:not(.is-applied):hover {
-  border-color: #C67C4E;
+  border-color: #b45309;
   box-shadow: 0 4px 14px rgba(198, 124, 78, 0.15);
 }
 
@@ -992,7 +1029,7 @@
 /* Cạnh trái: Badge mức giảm giá */
 .ticket-left-badge {
   width: 72px;
-  background: linear-gradient(135deg, #A06034 0%, #C67C4E 100%);
+  background: linear-gradient(135deg, #A06034 0%, #b45309 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1101,7 +1138,7 @@
   height: 30px;
   padding: 0 12px;
   border-radius: 6px;
-  background: #C67C4E;
+  background: #b45309;
   color: #fff;
   border: none;
   font-size: 12px;
@@ -1198,7 +1235,7 @@
 .btn-checkout {
   width: 100%;
   height: 40px;
-  background: #C67C4E;
+  background: #b45309;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -1268,7 +1305,7 @@
 }
 
 .variant-header-icon {
-  color: #C67C4E;
+  color: #b45309;
 }
 
 .drawer-variant-header-left h3 {
@@ -1392,7 +1429,7 @@
 }
 
 .variant-thumb-item.active {
-  border-color: #C67C4E;
+  border-color: #b45309;
   opacity: 1;
 }
 
@@ -1488,12 +1525,12 @@
 }
 
 .variant-select-card:hover:not(.disabled) {
-  border-color: #C67C4E;
+  border-color: #b45309;
   background: rgba(198, 124, 78, 0.08);
 }
 
 .variant-select-card.selected {
-  border-color: #C67C4E;
+  border-color: #b45309;
   background: rgba(198, 124, 78, 0.12);
 }
 
@@ -1522,14 +1559,14 @@
 }
 
 .variant-select-card.selected .vcard-radio {
-  border-color: #C67C4E;
+  border-color: #b45309;
 }
 
 .radio-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #C67C4E;
+  background: #b45309;
 }
 
 .vcard-text {
@@ -1602,7 +1639,7 @@
   flex: 2;
   height: 40px;
   border-radius: 8px;
-  background: #C67C4E;
+  background: #b45309;
   color: #fff;
   border: none;
   font-size: 13px;
@@ -1803,7 +1840,7 @@
    ======================================================== */
 .cart-drawer-item-card.dropdown-active {
   z-index: 40;
-  border-color: #C67C4E;
+  border-color: #b45309;
   box-shadow: 0 4px 18px rgba(198, 124, 78, 0.15);
 }
 
@@ -1820,13 +1857,13 @@
 
 .cart-variant-select-box.is-open .variant-chevron {
   transform: rotate(180deg);
-  color: #C67C4E;
+  color: #b45309;
 }
 
 .cart-variant-select-box.is-open .variant-badge-btn {
-  border-color: #C67C4E;
+  border-color: #b45309;
   background: rgba(198, 124, 78, 0.14);
-  color: #C67C4E;
+  color: #b45309;
   box-shadow: 0 0 0 2px rgba(198, 124, 78, 0.16);
 }
 

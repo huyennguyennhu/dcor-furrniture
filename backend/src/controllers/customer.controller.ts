@@ -1992,7 +1992,8 @@ export const customerController = {
 
       // Cập nhật trạng thái đơn hàng nếu tìm thấy trong DB
       const order = await prisma.order.findFirst({
-        where: { orderNumber, customerId }
+        where: { orderNumber, customerId },
+        include: { items: true }
       });
 
       if (order) {
@@ -2004,6 +2005,51 @@ export const customerController = {
             notes: `[Tạo yêu cầu đổi trả ${newReturn.id}] Lý do: ${reason}. Mô tả: ${description || ''}`
           }
         });
+
+        // Lưu đồng bộ trực tiếp vào bảng OrderReturn và OrderReturnItem trong PostgreSQL
+        try {
+          const retCode = `RMA-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${order.orderNumber.replace(/[^0-9]/g, '').slice(-4) || '1001'}`;
+          const retId = `ret_${Date.now()}`;
+          const customerName = (order as any).receiverName || (order as any).customerName || 'Khách hàng';
+          const customerPhone = order.phone || (order as any).receiverPhone || '';
+          const customerEmail = order.email || '';
+          const customerAddress = (order as any).detailAddress || (order as any).shippingAddress || '';
+          const firstItem = order.items && order.items.length > 0 ? order.items[0] : null;
+
+          await prisma.$executeRawUnsafe(`
+            INSERT INTO "OrderReturn" (
+              "id", "returnCode", "orderId", "orderNumber", "customerId", "customerName", "customerPhone",
+              "customerEmail", "customerAddress", "returnType", "status", "reason", "detailedReason",
+              "proofImages", "refundAmount", "createdAt", "updatedAt"
+            ) VALUES (
+              $1, $2, $3, $4, $5, $6, $7,
+              $8, $9, 'REFUND', 'PENDING', $10, $11,
+              $12::jsonb, $13, NOW(), NOW()
+            ) ON CONFLICT DO NOTHING;
+          `,
+            retId, retCode, order.id, order.orderNumber, customerId, customerName, customerPhone,
+            customerEmail, customerAddress, reason, description || '',
+            JSON.stringify(Array.isArray(images) ? images : []), Number(order.totalAmount || 0)
+          );
+
+          if (firstItem) {
+            await prisma.$executeRawUnsafe(`
+              INSERT INTO "OrderReturnItem" (
+                "id", "returnId", "orderItemId", "productId", "productName", "productSku",
+                "variantName", "quantity", "unitPrice", "totalPrice", "productImage", "createdAt"
+              ) VALUES (
+                $1, $2, $3, $4, $5, $6,
+                $7, $8, $9, $10, $11, NOW()
+              ) ON CONFLICT DO NOTHING;
+            `,
+              `ret_item_${Date.now()}`, retId, firstItem.id, firstItem.productId,
+              productName || firstItem.productName, sku || firstItem.sku || null, firstItem.variantDescription || null,
+              1, Number(firstItem.price || 0), Number(firstItem.price || 0), imageUrl || firstItem.imageUrl || null
+            );
+          }
+        } catch (dbErr) {
+          console.warn('Lỗi ghi OrderReturn vào DB từ customerController.createReturn:', dbErr);
+        }
       }
 
       res.status(201).json({

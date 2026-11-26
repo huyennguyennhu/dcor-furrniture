@@ -17,12 +17,29 @@ import {
   Sparkles,
   RefreshCw,
   Image as ImageIcon,
-  X
+  X,
+  MapPin,
+  Check,
+  FileText,
+  Truck,
+  CircleX,
+  Copy,
+  ShieldCheck
 } from 'lucide-angular';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { ReviewService, ProductReviewItem, PendingReviewItem } from '../../../../core/services/review.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { OrderService, OrderDetail } from '../../../../core/services/order.service';
 import { OrderReviewModalComponent, ReviewModalItem } from '../../../../shared/components/order-review-modal/order-review-modal';
+
+export interface OrderTimelineStep {
+  key: string;
+  title: string;
+  subTitle?: string;
+  icon: any;
+  status: 'completed' | 'current' | 'pending' | 'cancelled';
+  time?: string | null;
+}
 
 @Component({
   selector: 'app-account-reviews',
@@ -53,7 +70,14 @@ export class AccountReviewsComponent implements OnInit {
     Sparkles,
     RefreshCw,
     ImageIcon,
-    X
+    X,
+    MapPin,
+    Check,
+    FileText,
+    Truck,
+    CircleX,
+    Copy,
+    ShieldCheck
   };
 
   activeTab: 'unreviewed' | 'reviewed' = 'unreviewed';
@@ -76,9 +100,16 @@ export class AccountReviewsComponent implements OnInit {
   // Modal xem ảnh phóng to
   previewImageUrl: string | null = null;
 
+  // Modal Chi tiết Đơn hàng (Popup tại chỗ)
+  selectedOrder: OrderDetail | null = null;
+  isDetailDrawerOpen = false;
+  isLoadingDetail = false;
+  detailError = '';
+
   constructor(
     private reviewService: ReviewService,
     private authService: AuthService,
+    private orderService: OrderService,
     private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
@@ -214,6 +245,204 @@ export class AccountReviewsComponent implements OnInit {
     this.reviewedList = [];
     this.unreviewedList = [];
     this.cdr.markForCheck();
+  }
+
+  openOrderDetail(orderNumber: string, event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!orderNumber) return;
+    this.isDetailDrawerOpen = true;
+    this.isLoadingDetail = true;
+    this.selectedOrder = null;
+    this.detailError = '';
+    this.cdr.markForCheck();
+
+    this.orderService.getOrderDetail(orderNumber).subscribe({
+      next: (order) => {
+        this.selectedOrder = order;
+        this.isLoadingDetail = false;
+        this.cdr.markForCheck();
+        try { this.cdr.detectChanges(); } catch (_) {}
+      },
+      error: (err) => {
+        this.isLoadingDetail = false;
+        this.detailError = err?.error?.message || 'Không thể tải thông tin chi tiết đơn hàng. Vui lòng thử lại sau.';
+        this.cdr.markForCheck();
+        try { this.cdr.detectChanges(); } catch (_) {}
+      }
+    });
+  }
+
+  closeDetailDrawer(): void {
+    this.isDetailDrawerOpen = false;
+    this.selectedOrder = null;
+    this.detailError = '';
+  }
+
+  formatCurrency(amount?: number | null): string {
+    if (amount === undefined || amount === null) return '0 ₫';
+    return amount.toLocaleString('vi-VN') + ' ₫';
+  }
+
+  getOrderStatusClass(order?: OrderDetail | null): string {
+    if (!order) return '';
+    const st = (order.status || '').toLowerCase();
+    if (st.includes('cancel')) return 'status-cancelled';
+    if (st.includes('deliver') || st.includes('complete')) return 'status-delivered';
+    if (st.includes('ship')) return 'status-shipped';
+    if (st.includes('process')) return 'status-processing';
+    if (st.includes('wait') || st.includes('pay')) return 'status-waiting';
+    return 'status-pending';
+  }
+
+  getOrderDisplayStatus(order?: OrderDetail | null): string {
+    if (!order) return '';
+    if (order.displayStatus) return order.displayStatus;
+    const st = order.status;
+    if (st === 'DELIVERED' || st === 'COMPLETED') return 'Hoàn tất';
+    if (st === 'SHIPPED') return 'Đang giao';
+    if (st === 'PROCESSING') return 'Đang chuẩn bị';
+    if (st === 'CANCELLED') return 'Đã hủy';
+    if (st === 'WAITING_PAYMENT') return 'Chờ thanh toán';
+    return 'Chờ xác nhận';
+  }
+
+  getOrderTimelineSteps(order: OrderDetail | null | undefined): OrderTimelineStep[] {
+    if (!order) return [];
+
+    const history = order.statusHistory || [];
+    const getStatusTime = (targetStatuses: string[]): string | null => {
+      for (let i = history.length - 1; i >= 0; i--) {
+        const h = history[i];
+        if (targetStatuses.includes(h.status) && h.createdAt) {
+          return h.createdAt;
+        }
+      }
+      for (const h of history) {
+        if (targetStatuses.includes(h.status) && h.createdAt) {
+          return h.createdAt;
+        }
+      }
+      return null;
+    };
+
+    if (order.status === 'CANCELLED') {
+      const cancelTime = order.cancelledAt || getStatusTime(['CANCELLED']) || null;
+      return [
+        {
+          key: 'ORDER_PLACED',
+          title: 'Đơn hàng đã đặt',
+          icon: this.icons.FileText,
+          status: 'completed',
+          time: order.createdAt || null
+        },
+        {
+          key: 'ORDER_CANCELLED',
+          title: 'Đã hủy đơn hàng',
+          subTitle: order.cancelReason || 'Đã hủy đơn hàng',
+          icon: this.icons.CircleX,
+          status: 'cancelled',
+          time: cancelTime
+        }
+      ];
+    }
+
+    const step1: OrderTimelineStep = {
+      key: 'PLACED',
+      title: 'Đơn hàng đã đặt',
+      icon: this.icons.FileText,
+      status: 'completed',
+      time: order.createdAt || null
+    };
+
+    let step2Title = 'Đã xác nhận';
+    const isHighValue = !!order.isHighValue;
+    const isPaid = order.paymentStatus === 'PAID';
+    const isPartial = order.paymentStatus === 'PARTIAL';
+    const advancedStatuses = ['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED'];
+    const isAdvanced = advancedStatuses.includes(order.status);
+
+    if (isHighValue) {
+      step2Title = (isPaid || isPartial || isAdvanced) ? 'Đã đặt cọc 30%' : 'Chờ đặt cọc 30%';
+    }
+
+    const isStep2Completed = isAdvanced || isPaid || isPartial || order.status === 'WAITING_DELIVERY';
+    const step2Time = getStatusTime(['CONFIRMED', 'PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED']);
+
+    const step2: OrderTimelineStep = {
+      key: 'CONFIRMED',
+      title: step2Title,
+      icon: this.icons.CheckCircle2,
+      status: isStep2Completed ? 'completed' : (order.status === 'PENDING' || order.status === 'WAITING_PAYMENT' ? 'current' : 'pending'),
+      time: step2Time
+    };
+
+    const isStep3Completed = ['SHIPPED', 'DELIVERED', 'COMPLETED'].includes(order.status);
+    const step3Time = getStatusTime(['PROCESSING', 'READY_TO_SHIP', 'SHIPPED', 'DELIVERED', 'COMPLETED']);
+    const step3: OrderTimelineStep = {
+      key: 'PROCESSING',
+      title: 'Đang chuẩn bị hàng',
+      icon: this.icons.Package,
+      status: isStep3Completed ? 'completed' : (order.status === 'PROCESSING' || order.status === 'CONFIRMED' ? 'current' : 'pending'),
+      time: step3Time
+    };
+
+    const isStep4Completed = ['DELIVERED', 'COMPLETED'].includes(order.status);
+    const step4Time = getStatusTime(['SHIPPED', 'DELIVERED', 'COMPLETED']);
+    const step4: OrderTimelineStep = {
+      key: 'SHIPPED',
+      title: 'Đang giao hàng',
+      icon: this.icons.Truck,
+      status: isStep4Completed ? 'completed' : (order.status === 'SHIPPED' ? 'current' : 'pending'),
+      time: step4Time
+    };
+
+    const isStep5Completed = order.status === 'DELIVERED' || order.status === 'COMPLETED';
+    const step5Time = (order as any).deliveredAt || getStatusTime(['DELIVERED', 'COMPLETED']) || null;
+    const step5: OrderTimelineStep = {
+      key: 'DELIVERED',
+      title: 'Hoàn tất',
+      icon: this.icons.Check,
+      status: isStep5Completed ? 'completed' : 'pending',
+      time: step5Time
+    };
+
+    return [step1, step2, step3, step4, step5];
+  }
+
+  formatShippingAddress(order: any): string {
+    if (!order) return '';
+    const detail = (order.detailAddress || order.address || '').trim();
+    const ward = (order.ward || '').trim();
+    const district = (order.district || '').trim();
+    const province = (order.province || '').trim();
+
+    const rawTokens = [detail, ward, district, province]
+      .filter(Boolean)
+      .join(', ')
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    const seen = new Set<string>();
+    const uniqueTokens: string[] = [];
+    for (const token of rawTokens) {
+      const lower = token.toLowerCase();
+      if (!seen.has(lower)) {
+        seen.add(lower);
+        uniqueTokens.push(token);
+      }
+    }
+    return uniqueTokens.join(', ');
+  }
+
+  copyToClipboard(text: string, label?: string): void {
+    if (!text) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+    }
   }
 }
 

@@ -282,68 +282,7 @@
       </div>
     </div>
 
-    <!-- DELIVERED 72H COUNTDOWN WIDGET: ĐỒNG HỒ ĐẾM NGƯỢC 72H ĐỔI TRẢ (TỰ ĐỘNG CHUYỂN COMPLETED) -->
-  <div class="delivered-countdown-widget" *ngIf="order && order.status === 'DELIVERED'">
-    <div class="countdown-left-block">
-      <div class="countdown-badge-icon">
-        <lucide-angular [img]="icons.Clock" size="20"></lucide-angular>
-      </div>
-      <div class="countdown-info">
-        <div class="countdown-label-row">
-          <span class="countdown-title">Thời hạn hỗ trợ Đổi / Trả (72 Giờ)</span>
-        </div>
-        <div class="countdown-sub">
-          Khách hàng có quyền khiếu nại trong 72h. Hết thời gian này, hệ thống sẽ tự động chuyển <strong>Hoàn tất đơn hàng</strong> và kích hoạt bảo hành.
-        </div>
-      </div>
-    </div>
 
-    <div class="countdown-right-actions">
-      <div class="countdown-timer-boxes">
-        <div class="time-box">
-          <span class="time-num">{{ padZero(deliveredCountdown.hours) }}</span>
-          <span class="time-unit">Giờ</span>
-        </div>
-        <span class="time-colon">:</span>
-        <div class="time-box">
-          <span class="time-num">{{ padZero(deliveredCountdown.minutes) }}</span>
-          <span class="time-unit">Phút</span>
-        </div>
-        <span class="time-colon">:</span>
-        <div class="time-box">
-          <span class="time-num">{{ padZero(deliveredCountdown.seconds) }}</span>
-          <span class="time-unit">Giây</span>
-        </div>
-
-        <!-- Nút test kiểm thử đếm ngược 10 giây cuối -->
-        <button type="button" 
-                class="btn-demo-countdown" 
-                (click)="simulateExpiringCountdown(10)" 
-                title="Thử nghiệm: Đặt đồng hồ còn 10 giây để kiểm tra hệ thống tự động hoàn tất đơn hàng">
-          <lucide-angular [img]="icons.Zap" size="13"></lucide-angular>
-          <span>Test 10s</span>
-        </button>
-      </div>
-
-      <!-- Nút Đổi hàng (Giả lập khiếu nại đổi mẫu/kích thước trong 72h) -->
-      <button type="button" 
-              class="btn-customer-exchange" 
-              (click)="onSimulateCustomerExchange()" 
-              title="Giả lập khách hàng gửi yêu cầu đổi sang sản phẩm khác trong thời hạn 72h">
-        <lucide-angular [img]="icons.RefreshCw" size="14"></lucide-angular>
-        <span>Đổi hàng</span>
-      </button>
-
-      <!-- Nút Trả hàng hoàn tiền (Giả lập khiếu nại trả hàng hoàn tiền trong 72h) -->
-      <button type="button" 
-              class="btn-customer-return" 
-              (click)="onSimulateCustomerReturn()" 
-              title="Giả lập khách hàng gửi yêu cầu trả hàng và hoàn tiền trong thời hạn 72h">
-        <lucide-angular [img]="icons.CornerDownLeft" size="15"></lucide-angular>
-        <span>Trả hàng hoàn tiền</span>
-      </button>
-    </div>
-  </div>
 
   <!-- KHUNG THÔNG BÁO CHO PENDING (TRƯỜNG HỢP 2 & TRƯỜNG HỢP 3) - ĐẶT NGAY DƯỚI STEPPER -->
   <div class="pending-hold-banner" 

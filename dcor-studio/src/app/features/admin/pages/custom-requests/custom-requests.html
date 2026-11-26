@@ -203,13 +203,14 @@
         type="text" 
         class="filter-search-input" 
         placeholder="Tìm theo mã CR, tên khách, số điện thoại, mẫu sản phẩm, chất liệu da/gỗ..." 
-        [(ngModel)]="searchQuery" 
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="currentPage = 1" 
       />
       <button 
         *ngIf="searchQuery" 
         type="button" 
         class="search-clear-btn" 
-        (click)="searchQuery = ''" 
+        (click)="searchQuery = ''; currentPage = 1" 
         title="Xóa tìm kiếm">
         <lucide-angular [img]="icons.X" size="14"></lucide-angular>
       </button>
@@ -266,28 +267,28 @@
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedArchitect === 'ALL'"
-            (click)="selectedArchitect = 'ALL'; activeDropdown = 'NONE'">
+            (click)="selectedArchitect = 'ALL'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Tất cả KTS phụ trách</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedArchitect === 'ALL'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedArchitect === 'KTS. Lê Nam'"
-            (click)="selectedArchitect = 'KTS. Lê Nam'; activeDropdown = 'NONE'">
+            (click)="selectedArchitect = 'KTS. Lê Nam'; activeDropdown = 'NONE'; currentPage = 1">
             <span>KTS. Lê Nam</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedArchitect === 'KTS. Lê Nam'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedArchitect === 'KTS. Lê Hoàng'"
-            (click)="selectedArchitect = 'KTS. Lê Hoàng'; activeDropdown = 'NONE'">
+            (click)="selectedArchitect = 'KTS. Lê Hoàng'; activeDropdown = 'NONE'; currentPage = 1">
             <span>KTS. Lê Hoàng</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedArchitect === 'KTS. Lê Hoàng'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedArchitect === 'KTS. Trần Minh'"
-            (click)="selectedArchitect = 'KTS. Trần Minh'; activeDropdown = 'NONE'">
+            (click)="selectedArchitect = 'KTS. Trần Minh'; activeDropdown = 'NONE'; currentPage = 1">
             <span>KTS. Trần Minh</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedArchitect === 'KTS. Trần Minh'"></lucide-angular>
           </div>
@@ -313,35 +314,35 @@
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedCategory === 'ALL'"
-            (click)="selectedCategory = 'ALL'; activeDropdown = 'NONE'">
+            (click)="selectedCategory = 'ALL'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Tất cả hạng mục</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedCategory === 'ALL'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedCategory === 'Sofa May Đo'"
-            (click)="selectedCategory = 'Sofa May Đo'; activeDropdown = 'NONE'">
+            (click)="selectedCategory = 'Sofa May Đo'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Sofa May Đo</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedCategory === 'Sofa May Đo'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedCategory === 'Bàn Trà Custom'"
-            (click)="selectedCategory = 'Bàn Trà Custom'; activeDropdown = 'NONE'">
+            (click)="selectedCategory = 'Bàn Trà Custom'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Bàn Trà Custom</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedCategory === 'Bàn Trà Custom'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedCategory === 'Giường & Tủ Áo'"
-            (click)="selectedCategory = 'Giường & Tủ Áo'; activeDropdown = 'NONE'">
+            (click)="selectedCategory = 'Giường & Tủ Áo'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Giường & Tủ Áo</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedCategory === 'Giường & Tủ Áo'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedCategory === 'Bàn Ăn Custom'"
-            (click)="selectedCategory = 'Bàn Ăn Custom'; activeDropdown = 'NONE'">
+            (click)="selectedCategory = 'Bàn Ăn Custom'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Bàn Ăn Custom</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedCategory === 'Bàn Ăn Custom'"></lucide-angular>
           </div>
@@ -367,28 +368,28 @@
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedPriceRange === 'ALL'"
-            (click)="selectedPriceRange = 'ALL'; activeDropdown = 'NONE'">
+            (click)="selectedPriceRange = 'ALL'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Tất cả ngân sách</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedPriceRange === 'ALL'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedPriceRange === 'UNDER_20'"
-            (click)="selectedPriceRange = 'UNDER_20'; activeDropdown = 'NONE'">
+            (click)="selectedPriceRange = 'UNDER_20'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Dưới 20 triệu</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedPriceRange === 'UNDER_20'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedPriceRange === '20_TO_50'"
-            (click)="selectedPriceRange = '20_TO_50'; activeDropdown = 'NONE'">
+            (click)="selectedPriceRange = '20_TO_50'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Từ 20 - 50 triệu</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedPriceRange === '20_TO_50'"></lucide-angular>
           </div>
           <div 
             class="filter-menu-item" 
             [class.selected]="selectedPriceRange === 'OVER_50'"
-            (click)="selectedPriceRange = 'OVER_50'; activeDropdown = 'NONE'">
+            (click)="selectedPriceRange = 'OVER_50'; activeDropdown = 'NONE'; currentPage = 1">
             <span>Trên 50 triệu (Hạng Luxury)</span>
             <lucide-angular [img]="icons.Check" size="13" *ngIf="selectedPriceRange === 'OVER_50'"></lucide-angular>
           </div>
@@ -480,7 +481,7 @@
         <tr 
           class="v2-table-row"
           tabindex="0"
-          *ngFor="let req of filteredRequests" 
+          *ngFor="let req of paginatedRequests" 
           (click)="openDetailModal(req)">
 
           <!-- Cột 1: Mã hồ sơ -->
@@ -562,23 +563,69 @@
     </div>
 
     <!-- Phân trang chuẩn 100% từ Danh sách đơn hàng -->
-    <div *ngIf="filteredRequests.length > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color, #e5e7eb); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary, #ffffff); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
+    <div *ngIf="totalItems > 0" style="padding: 14px 20px; border-top: 1px solid var(--border-color, #e5e7eb); display: flex; justify-content: space-between; align-items: center; background: var(--bg-primary, #ffffff); flex-wrap: wrap; gap: 12px; border-bottom-left-radius: 11px; border-bottom-right-radius: 11px;">
       <div style="font-size: 13px; color: var(--text-secondary, #4b5563);">
-        Hiển thị <span style="font-weight: 600; color: var(--text-primary, #111827);">1 - {{ filteredRequests.length }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary, #111827);">{{ requests.length }}</span> hồ sơ may đo
+        Hiển thị <span style="font-weight: 600; color: var(--text-primary, #111827);">{{ getStartIndex() }} - {{ getEndIndex() }}</span> trong tổng số <span style="font-weight: 600; color: var(--text-primary, #111827);">{{ totalItems }}</span> hồ sơ may đo
       </div>
+
       <div style="display: flex; align-items: center; gap: 6px;">
-        <button type="button" title="Trang đầu" class="admin-pagination-btn disabled" disabled>
-          <lucide-angular [img]="icons.ChevronDown" size="15" style="transform: rotate(90deg);"></lucide-angular>
+        <!-- First Page -->
+        <button 
+          type="button" 
+          (click)="goToPage(1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn" 
+          [class.disabled]="currentPage === 1"
+          title="Trang đầu"
+        >
+          <lucide-angular [img]="icons.ChevronsLeft" size="15"></lucide-angular>
         </button>
-        <button type="button" title="Trang trước" class="admin-pagination-btn disabled" disabled>
-          <lucide-angular [img]="icons.ChevronDown" size="15" style="transform: rotate(90deg);"></lucide-angular>
+
+        <!-- Previous Page -->
+        <button 
+          type="button" 
+          (click)="goToPage(currentPage - 1)" 
+          [disabled]="currentPage === 1"
+          class="admin-pagination-btn" 
+          [class.disabled]="currentPage === 1"
+          title="Trang trước"
+        >
+          <lucide-angular [img]="icons.ChevronLeft" size="15"></lucide-angular>
         </button>
-        <button type="button" class="admin-pagination-btn active">1</button>
-        <button type="button" title="Trang sau" class="admin-pagination-btn disabled" disabled>
-          <lucide-angular [img]="icons.ChevronDown" size="15" style="transform: rotate(-90deg);"></lucide-angular>
+
+        <!-- Page Numbers -->
+        <button 
+          type="button" 
+          *ngFor="let p of getVisiblePages()"
+          (click)="goToPage(p)"
+          class="admin-pagination-btn"
+          [class.active]="p === currentPage"
+        >
+          {{ p }}
         </button>
-        <button type="button" title="Trang cuối" class="admin-pagination-btn disabled" disabled>
-          <lucide-angular [img]="icons.ChevronDown" size="15" style="transform: rotate(-90deg);"></lucide-angular>
+
+        <!-- Next Page -->
+        <button 
+          type="button" 
+          (click)="goToPage(currentPage + 1)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn" 
+          [class.disabled]="currentPage === totalPages"
+          title="Trang sau"
+        >
+          <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+        </button>
+
+        <!-- Last Page -->
+        <button 
+          type="button" 
+          (click)="goToPage(totalPages)" 
+          [disabled]="currentPage === totalPages"
+          class="admin-pagination-btn" 
+          [class.disabled]="currentPage === totalPages"
+          title="Trang cuối"
+        >
+          <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
         </button>
       </div>
     </div>
@@ -934,11 +981,19 @@
               <span>Nghiệm thu QC</span>
             </button>
 
-            <!-- Bước 7: QC đạt -> Bàn giao & BH -->
-            <button type="button" class="v2-btn-primary" *ngIf="activeRequest.status === 'QC_PASSED'" (click)="openDeliveryModal(activeRequest)">
-              <lucide-angular [img]="icons.Truck" size="14"></lucide-angular>
-              <span>Giao hàng & Thu 70%</span>
+            <!-- Bước 7: QC đạt -> Thu 70% & Kích hoạt BH (Chỉ sáng khi đơn hàng liên kết đã giao thành công) -->
+            <button type="button" class="v2-btn-primary" *ngIf="activeRequest.status === 'QC_PASSED'" 
+              [disabled]="!isLinkedOrderDelivered(activeRequest)"
+              [style.opacity]="!isLinkedOrderDelivered(activeRequest) ? '0.55' : '1'"
+              [style.cursor]="!isLinkedOrderDelivered(activeRequest) ? 'not-allowed' : 'pointer'"
+              (click)="isLinkedOrderDelivered(activeRequest) ? openDeliveryModal(activeRequest) : null"
+              [title]="!isLinkedOrderDelivered(activeRequest) ? ('Chờ đơn hàng giao thành công. Hiện tại: ' + getLinkedOrderStatusLabel(activeRequest)) : 'Thu 70% còn lại và kích hoạt bảo hành'">
+              <lucide-angular [img]="icons.ShieldCheck" size="14"></lucide-angular>
+              <span>Thu 70% & Kích hoạt BH</span>
             </button>
+            <span *ngIf="activeRequest.status === 'QC_PASSED' && !isLinkedOrderDelivered(activeRequest)" style="font-size: 11px; color: #b45309; display: block; margin-top: 4px;">
+              ⏳ Đang vận chuyển ({{ getLinkedOrderStatusLabel(activeRequest) }})
+            </span>
 
             <!-- Xem đơn hàng chính thức -->
             <button type="button" class="v2-btn-secondary" *ngIf="['PROCESSING', 'QC_PASSED', 'COMPLETED'].includes(activeRequest.status) && activeRequest.generatedOrderNumber" (click)="goToOrder(activeRequest.generatedOrderNumber)">
@@ -1132,7 +1187,7 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- MODAL: GIAO HÀNG, THU 70% CÒN LẠI & KÍCH HOẠT BẢO HÀNH                      -->
+  <!-- MODAL: QUYẾT TOÁN 70% CÒN LẠI & KÍCH HOẠT BẢO HÀNH                      -->
   <!-- ========================================================================= -->
   <div class="dcor-modal-backdrop" *ngIf="activeModal === 'DELIVERY'" (click)="closeModal()">
     <div class="dcor-modal-card modal-lg" (click)="$event.stopPropagation()">
@@ -1141,7 +1196,7 @@
           <div class="modal-step-badge" style="background: rgba(21, 128, 61, 0.12); color: #15803d; border-color: rgba(21, 128, 61, 0.3);">
             Hoàn tất quy trình
           </div>
-          <h3>Giao Hàng, Thu 70% Còn Lại & Kích Hoạt Bảo Hành</h3>
+          <h3>Quyết Toán 70% Còn Lại & Kích Hoạt Bảo Hành</h3>
         </div>
         <button type="button" class="modal-close-btn" (click)="closeModal()"><lucide-angular [img]="icons.X" size="18"></lucide-angular></button>
       </div>

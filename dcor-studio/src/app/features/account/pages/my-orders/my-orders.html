@@ -479,9 +479,12 @@
 
       <div class="form-group">
         <label class="form-label">Chọn lý do hủy <span class="required">*</span></label>
-        <select [(ngModel)]="cancelReason" name="cancelReason" class="form-input select">
-          <option *ngFor="let opt of cancelReasonOptions" [value]="opt">{{ opt }}</option>
-        </select>
+        <app-custom-dropdown
+          [(ngModel)]="cancelReason"
+          name="cancelReason"
+          [options]="cancelReasonOptions"
+          [searchable]="false">
+        </app-custom-dropdown>
       </div>
 
       <div *ngIf="cancelReason === 'Lý do khác'" class="form-group">
@@ -678,10 +681,12 @@
           <label style="font-size: 12px; font-weight: 600; color: #4B5563; display: block; margin-bottom: 6px;">
             Lý do khiếu nại <span style="color: #DC2626;">*</span>
           </label>
-          <select [(ngModel)]="form.reason"
-                  style="width: 100%; padding: 8px 12px; font-size: 13px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFF; color: #111827; outline: none;">
-            <option *ngFor="let r of returnReasonOptions" [value]="r">{{ r }}</option>
-          </select>
+          <app-custom-dropdown
+            [(ngModel)]="form.reason"
+            [ngModelOptions]="{ standalone: true }"
+            [options]="returnReasonOptions"
+            [searchable]="false">
+          </app-custom-dropdown>
         </div>
 
         <!-- Mô tả chi tiết -->

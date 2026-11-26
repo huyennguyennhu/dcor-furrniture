@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, catchError, throwError, tap, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 const GUEST_CART_KEY = 'dcor_guest_cart';
+export const MAX_CART_ITEMS = 30;
+export const MAX_ITEM_QUANTITY = 100;
 
 export interface CartItem {
   id: string;
@@ -229,6 +231,38 @@ export class CartService {
    * - Khách vãng lai: lưu vào localStorage với thông tin sản phẩm đã biết
    */
   addToCart(variantId: string, quantity: number, selectedOptions?: any, guestProductInfo?: Partial<CartItem>): Observable<any> {
+    const currentItems = this.cartSubject.value || [];
+    const existingItem = currentItems.find(i => i.variantId === variantId);
+
+    // Rule 1: Tối đa 30 biến thể (SKU) khác nhau trong giỏ
+    if (!existingItem && currentItems.length >= MAX_CART_ITEMS) {
+      return throwError(() => new HttpErrorResponse({
+        status: 400,
+        error: {
+          code: 'CART_ITEM_LIMIT_EXCEEDED',
+          message: `Giỏ hàng đã đạt tối đa ${MAX_CART_ITEMS} loại sản phẩm (biến thể) khác nhau. Vui lòng thanh toán hoặc bỏ bớt trước khi thêm mới.`
+        }
+      }));
+    }
+
+    // Rule 2: Tổng số lượng / 1 biến thể <= min(availableStock, 100)
+    const currentQty = existingItem ? existingItem.quantity : 0;
+    const stockLimit = guestProductInfo?.availableStock ?? existingItem?.availableStock;
+    const maxAllowed = stockLimit !== undefined ? Math.min(stockLimit, MAX_ITEM_QUANTITY) : MAX_ITEM_QUANTITY;
+    if (currentQty + quantity > maxAllowed) {
+      const msg = (stockLimit !== undefined && stockLimit < MAX_ITEM_QUANTITY)
+        ? `Tổng số lượng vượt tồn kho khả dụng (tối đa ${maxAllowed} sản phẩm, hiện có ${currentQty} trong giỏ).`
+        : `Mỗi loại sản phẩm chỉ được thêm tối đa ${MAX_ITEM_QUANTITY} chiếc (hiện có ${currentQty} trong giỏ).`;
+      return throwError(() => new HttpErrorResponse({
+        status: 400,
+        error: {
+          code: 'CART_ITEM_QUANTITY_LIMIT_EXCEEDED',
+          message: msg,
+          maxAllowed
+        }
+      }));
+    }
+
     if (!this.isLoggedIn) {
       // Guest: thêm vào localStorage
       const guestItems = this.addGuestItem(variantId, quantity, selectedOptions, guestProductInfo);
@@ -240,8 +274,11 @@ export class CartService {
       .pipe(
         tap(() => this.loadCart().subscribe()),
         catchError((err) => {
-          // Khi phiên đăng nhập hết hạn, không có quyền, hoặc biến thể không tồn tại trên server:
-          // tự động fallback lưu vào giỏ hàng cục bộ để không bao giờ làm mất sản phẩm của người dùng
+          // Không fallback offline đối với các lỗi nghiệp vụ từ server (400 / 409)
+          if (err?.status === 400 || err?.status === 409) {
+            return throwError(() => err);
+          }
+          // Khi phiên đăng nhập hết hạn hoặc mất kết nối:
           console.warn('Lỗi khi thêm giỏ hàng online, tự động lưu vào giỏ hàng offline/guest:', err);
           this.addGuestItem(variantId, quantity, selectedOptions, guestProductInfo);
           return of({ message: 'Đã thêm vào giỏ hàng' });

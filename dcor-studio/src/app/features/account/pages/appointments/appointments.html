@@ -400,12 +400,12 @@
 
         <div class="form-group">
           <label class="form-label">Vui lòng cho DCor biết lý do hủy hẹn:</label>
-          <select class="form-control" [(ngModel)]="cancelReason">
-            <option value="Thay đổi kế hoạch cá nhân">Thay đổi kế hoạch cá nhân</option>
-            <option value="Muốn đặt lại vào ngày/giờ khác">Muốn đặt lại vào ngày/giờ khác</option>
-            <option value="Đã chọn được phương án nội thất khác">Đã chọn được phương án nội thất khác</option>
-            <option value="Lý do khác">Lý do khác</option>
-          </select>
+          <app-custom-dropdown
+            [(ngModel)]="cancelReason"
+            name="apptCancelReason"
+            [options]="['Thay đổi kế hoạch cá nhân', 'Muốn đặt lại vào ngày/giờ khác', 'Đã chọn được phương án nội thất khác', 'Lý do khác']"
+            [searchable]="false">
+          </app-custom-dropdown>
         </div>
       </div>
 

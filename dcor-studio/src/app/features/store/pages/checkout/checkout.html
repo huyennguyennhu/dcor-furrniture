@@ -27,10 +27,13 @@
         <a routerLink="/explore" class="btn-return-shop">Khám phá sản phẩm</a>
       </div>
 
-      <!-- Alert thông báo lỗi chung -->
+      <!-- Floating Toast thông báo lỗi chung -->
       <div *ngIf="orderErrorMessage && checkoutItems.length > 0" class="checkout-alert error" role="alert">
-        <lucide-angular [img]="icons.AlertCircle" size="18"></lucide-angular>
-        <span>{{ orderErrorMessage }}</span>
+        <lucide-angular [img]="icons.AlertCircle" size="18" class="alert-icon"></lucide-angular>
+        <span class="alert-msg">{{ orderErrorMessage }}</span>
+        <button type="button" class="alert-close-btn" (click)="orderErrorMessage = ''" title="Đóng">
+          <lucide-angular [img]="icons.X" size="15"></lucide-angular>
+        </button>
       </div>
 
       <!-- Form Thanh toán chính (Chỉ hiện khi có sản phẩm) -->
@@ -70,7 +73,7 @@
                 </div>
                 <div class="addr-full-text">{{ address }}</div>
                 <div *ngIf="email" class="addr-email-text">
-                  Email nhận thông báo: <strong>{{ email }}</strong>
+                  Email: <strong>{{ email }}</strong>
                 </div>
               </div>
               <div class="addr-card-action">
@@ -713,9 +716,9 @@
               <span class="addr-phone">{{ addr.phone }}</span>
             </div>
             <div class="addr-detail">{{ addr.address }}</div>
-            <div class="addr-card-bottom">
+            <!-- <div class="addr-card-bottom">
               <span class="btn-use-addr">Giao đến địa chỉ này</span>
-            </div>
+            </div> -->
           </div>
         </div>
 
@@ -751,9 +754,9 @@
               <span *ngIf="addr.isDefault" class="default-badge">Mặc định</span>
             </div>
             <div class="addr-detail">{{ addr.address }}</div>
-            <div class="addr-card-bottom">
+            <!-- <div class="addr-card-bottom">
               <span class="btn-use-addr">Giao đến địa chỉ này</span>
-            </div>
+            </div> -->
           </div>
         </div>
 
@@ -822,7 +825,7 @@
 
         <!-- Email nhận thông báo -->
         <div class="form-group full-width" [class.has-error]="newAddressErrors.email">
-          <label>Email nhận thông báo đơn (tùy chọn)</label>
+          <label>Email</label>
           <input type="email" [(ngModel)]="newAddress.email" (blur)="onNewAddressEmailBlur()"
             (input)="onNewAddressEmailBlur()" [class.is-invalid]="newAddressErrors.email" name="naEmail"
             placeholder="hoten@gmail.com" class="custom-input" />
@@ -832,13 +835,43 @@
           </div>
         </div>
 
-        <!-- Tỉnh / Thành phố -->
+        <!-- Tỉnh / Thành phố (Custom Searchable Dropdown) -->
         <div class="form-group" [class.has-error]="newAddressErrors.province">
           <label>Tỉnh / Thành phố <span class="req">*</span></label>
-          <select [(ngModel)]="newAddress.province" (change)="onNewAddressProvinceChange()"
-            [class.is-invalid]="newAddressErrors.province" name="naProvince" class="custom-select">
-            <option *ngFor="let p of provinces" [value]="p">{{ p }}</option>
-          </select>
+          <div class="addr-custom-select" [class.is-open]="openAddrDropdown === 'province'" [class.dropup]="openAddrDropdown === 'province' && addrDropdownDropUp">
+            <button #provTrigger type="button" class="addr-select-trigger"
+              [class.is-invalid]="newAddressErrors.province"
+              (click)="toggleAddrDropdown('province', $event, provTrigger)">
+              <span class="addr-select-val" [class.placeholder]="!newAddress.province">
+                {{ newAddress.province || '-- Chọn Tỉnh / Thành phố --' }}
+              </span>
+              <lucide-angular [img]="icons.ChevronDown" size="16" class="addr-select-chevron"></lucide-angular>
+            </button>
+
+            <div class="addr-select-menu" *ngIf="openAddrDropdown === 'province'" (click)="$event.stopPropagation()">
+              <div class="addr-select-search">
+                <lucide-angular [img]="icons.Search" size="14" class="addr-search-icon"></lucide-angular>
+                <input type="text" [(ngModel)]="provinceSearchQuery" (ngModelChange)="provinceDisplayLimit = 20"
+                  name="naProvSearch" placeholder="Tìm Tỉnh / Thành phố..." class="addr-search-input" autofocus />
+              </div>
+              <div class="addr-select-options" (scroll)="onAddrDropdownScroll('province', $event)">
+                <div *ngFor="let p of visibleNewAddressProvinces"
+                  class="addr-select-option"
+                  [class.selected]="newAddress.province === p"
+                  (click)="selectNewAddressProvince(p, $event)">
+                  <span>{{ p }}</span>
+                  <lucide-angular *ngIf="newAddress.province === p" [img]="icons.Check" size="14"></lucide-angular>
+                </div>
+                <div *ngIf="filteredNewAddressProvinces.length === 0" class="addr-select-empty">
+                  Không tìm thấy Tỉnh / Thành phố phù hợp
+                </div>
+                <button *ngIf="visibleNewAddressProvinces.length < filteredNewAddressProvinces.length"
+                  type="button" class="addr-select-load-more" (click)="loadMoreAddrOptions('province', $event)">
+                  Hiển thị {{ visibleNewAddressProvinces.length }} / {{ filteredNewAddressProvinces.length }} • Bấm hoặc cuộn xem thêm
+                </button>
+              </div>
+            </div>
+          </div>
           <div *ngIf="newAddressErrors.province" class="field-error-text">
             <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
             <span>{{ newAddressErrors.province }}</span>
@@ -848,21 +881,55 @@
         <!-- Quận / Huyện -->
         <div class="form-group" *ngIf="newAddressDistricts.length > 0">
           <label>Quận / Huyện / Thị xã <span class="req">*</span></label>
-          <select [(ngModel)]="newAddress.district" (change)="onNewAddressDistrictChange()" name="naDistrict"
-            class="custom-select">
-            <option value="" disabled>-- Chọn Quận / Huyện --</option>
-            <option *ngFor="let d of newAddressDistricts" [value]="d">{{ d }}</option>
-          </select>
+          <app-custom-dropdown
+            [(ngModel)]="newAddress.district"
+            (ngModelChange)="onNewAddressDistrictChange()"
+            name="naDistrict"
+            [options]="newAddressDistricts"
+            placeholder="-- Chọn Quận / Huyện --"
+            [searchable]="true"
+            searchPlaceholder="Tìm Quận / Huyện..."
+            emptyText="Không tìm thấy Quận / Huyện phù hợp">
+          </app-custom-dropdown>
         </div>
 
-        <!-- Phường / Xã -->
+        <!-- Phường / Xã (Custom Searchable Dropdown) -->
         <div class="form-group" [class.has-error]="newAddressErrors.ward">
           <label>Phường / Xã / Thị trấn <span class="req">*</span></label>
-          <select [(ngModel)]="newAddress.ward" (change)="onNewAddressWardChange()"
-            [class.is-invalid]="newAddressErrors.ward" name="naWard" class="custom-select">
-            <option value="" disabled>-- Chọn Phường / Xã --</option>
-            <option *ngFor="let w of newAddressWards" [value]="w">{{ w }}</option>
-          </select>
+          <div class="addr-custom-select" [class.is-open]="openAddrDropdown === 'ward'" [class.dropup]="openAddrDropdown === 'ward' && addrDropdownDropUp">
+            <button #wardTrigger type="button" class="addr-select-trigger"
+              [class.is-invalid]="newAddressErrors.ward"
+              (click)="toggleAddrDropdown('ward', $event, wardTrigger)">
+              <span class="addr-select-val" [class.placeholder]="!newAddress.ward">
+                {{ newAddress.ward || '-- Chọn Phường / Xã --' }}
+              </span>
+              <lucide-angular [img]="icons.ChevronDown" size="16" class="addr-select-chevron"></lucide-angular>
+            </button>
+
+            <div class="addr-select-menu" *ngIf="openAddrDropdown === 'ward'" (click)="$event.stopPropagation()">
+              <div class="addr-select-search">
+                <lucide-angular [img]="icons.Search" size="14" class="addr-search-icon"></lucide-angular>
+                <input type="text" [(ngModel)]="wardSearchQuery" (ngModelChange)="wardDisplayLimit = 20"
+                  name="naWardSearch" placeholder="Tìm Phường / Xã..." class="addr-search-input" autofocus />
+              </div>
+              <div class="addr-select-options" (scroll)="onAddrDropdownScroll('ward', $event)">
+                <div *ngFor="let w of visibleNewAddressWards"
+                  class="addr-select-option"
+                  [class.selected]="newAddress.ward === w"
+                  (click)="selectNewAddressWard(w, $event)">
+                  <span>{{ w }}</span>
+                  <lucide-angular *ngIf="newAddress.ward === w" [img]="icons.Check" size="14"></lucide-angular>
+                </div>
+                <div *ngIf="filteredNewAddressWards.length === 0" class="addr-select-empty">
+                  Không tìm thấy Phường / Xã phù hợp
+                </div>
+                <button *ngIf="visibleNewAddressWards.length < filteredNewAddressWards.length"
+                  type="button" class="addr-select-load-more" (click)="loadMoreAddrOptions('ward', $event)">
+                  Hiển thị {{ visibleNewAddressWards.length }} / {{ filteredNewAddressWards.length }} • Bấm hoặc cuộn xem thêm
+                </button>
+              </div>
+            </div>
+          </div>
           <div *ngIf="newAddressErrors.ward" class="field-error-text">
             <lucide-angular [img]="icons.AlertCircle" size="13"></lucide-angular>
             <span>{{ newAddressErrors.ward }}</span>
@@ -1261,7 +1328,7 @@
       <div class="voucher-list-section">
         <div class="voucher-list-header">
           <div class="voucher-list-header-left">
-            <lucide-angular [img]="icons.Tag" size="14" color="#C67C4E"></lucide-angular>
+            <lucide-angular [img]="icons.Tag" size="14" color="#b45309"></lucide-angular>
             <span class="voucher-list-title">Mã giảm giá sản phẩm</span>
             <span *ngIf="eligibleProductPromotionsCount > 0" class="voucher-eligible-badge">
               {{ eligibleProductPromotionsCount }} mã khả dụng
