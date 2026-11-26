@@ -1,4 +1,4 @@
-# Hướng Dẫn Khởi Chạy Dự Án DCOR Studio
+# Hướng Dẫn Khởi Chạy Dự Án DCor
 
 Dự án bao gồm 2 phần chính: **Backend** (Node.js/Express) và **Frontend** (Angular 17+).
 Dưới đây là các lệnh cơ bản để khởi chạy dự án trong môi trường phát triển (Development).
