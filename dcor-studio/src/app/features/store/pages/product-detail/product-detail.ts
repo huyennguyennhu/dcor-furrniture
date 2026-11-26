@@ -10,6 +10,7 @@ import { CartService } from '../../../../core/services/cart.service';
 import { WishlistService } from '../../../../core/services/wishlist.service';
 import { ProductService } from '../../../../core/services/product.service';
 import { PromotionService, formatDiscountBadgeText } from '../../../../core/services/promotion.service';
+import { applyImageErrorFallback, resolveNextImageFallback, PLACEHOLDER_PRODUCT_IMAGE } from '../../../../shared/utils/image-fallback.util';
 import { environment } from '../../../../../environments/environment';
 
 export interface AttributeOption {
@@ -129,13 +130,49 @@ export class ProductDetailComponent implements OnInit, OnDestroy, AfterViewInit 
   containerHeight = 0;
   isHeroImageLoading = false;
   private preloadedUrls = new Set<string>();
+  private failedGalleryUrls = new Set<string>();
 
   onHeroImageLoad() {
     this.isHeroImageLoading = false;
   }
 
-  onHeroImageError() {
+  private getProductCoverFallbacks(): string[] {
+    const imgs = Array.isArray(this.product?.images) ? this.product.images : [];
+    return imgs.filter((u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('/image/fetch/'));
+  }
+
+  onHeroImageError(index: number = this.activeImageIndex) {
+    const failedUrl = this.galleryImages[index];
+    if (failedUrl && failedUrl !== PLACEHOLDER_PRODUCT_IMAGE) {
+      this.failedGalleryUrls.add(failedUrl);
+      const nextUrl = resolveNextImageFallback(failedUrl, this.getProductCoverFallbacks(), this.failedGalleryUrls);
+      if (nextUrl !== failedUrl) {
+        this.galleryImages[index] = nextUrl;
+        this.isHeroImageLoading = false;
+        this.cdr.detectChanges();
+        return;
+      }
+    }
     this.isHeroImageLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  onThumbImageError(index: number, event: Event) {
+    const galleryUrl = this.galleryImages[index];
+    if (galleryUrl && galleryUrl !== PLACEHOLDER_PRODUCT_IMAGE) {
+      this.failedGalleryUrls.add(galleryUrl);
+      const nextUrl = resolveNextImageFallback(galleryUrl, this.getProductCoverFallbacks(), this.failedGalleryUrls);
+      if (nextUrl !== galleryUrl) {
+        this.galleryImages[index] = nextUrl;
+        this.cdr.detectChanges();
+        return;
+      }
+    }
+    applyImageErrorFallback(event, this.getProductCoverFallbacks());
+  }
+
+  onStandaloneImageError(event: Event) {
+    applyImageErrorFallback(event, this.getProductCoverFallbacks());
   }
 
   // Variants & Attributes

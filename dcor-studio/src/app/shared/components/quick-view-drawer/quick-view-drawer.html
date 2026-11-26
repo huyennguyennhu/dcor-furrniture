@@ -45,7 +45,8 @@
                 (click)="toggleWishlist($event)" [title]="isWishlisted ? 'Bỏ yêu thích' : 'Yêu thích'">
           <app-icon name="Heart" size="16" [color]="isWishlisted ? '#C42326' : '#4b5563'" [filled]="isWishlisted"></app-icon>
         </button>
-        <img [src]="galleryImages[currentImageIdx] || activeProduct.images?.[0]" [alt]="activeProduct.name" class="main-img" />
+        <img [src]="galleryImages[currentImageIdx] || activeProduct.images?.[0]" [alt]="activeProduct.name" class="main-img"
+             (error)="onGalleryImageError(currentImageIdx, $event)" />
       </div>
 
       <!-- Hàng ảnh thu nhỏ (Thumbnails): kích thước nhỏ gọn 58px, contain tránh cắt hình -->
@@ -55,7 +56,7 @@
              [class.active]="currentImageIdx === idx"
              (click)="selectThumbnail(idx)"
              [title]="'Góc xem ' + (idx + 1)">
-          <img [src]="getThumbUrl(img)" [alt]="'Góc xem ' + (idx + 1)" />
+          <img [src]="getThumbUrl(img)" [alt]="'Góc xem ' + (idx + 1)" (error)="onGalleryImageError(idx, $event)" />
         </div>
       </div>
 

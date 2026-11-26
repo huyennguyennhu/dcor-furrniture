@@ -61,7 +61,8 @@
           <img
             [src]="variantImages[currentVariantImageIdx] || editingCartItem?.image || '/assets/img/furniture-placeholder.svg'"
             [alt]="productForVariantEdit?.name || editingCartItem?.name"
-            class="qv-main-img" />
+            class="qv-main-img"
+            (error)="onVariantGalleryImageError(currentVariantImageIdx, $event)" />
         </div>
 
         <!-- Hàng ảnh thu nhỏ (Thumbnails) -->
@@ -72,7 +73,8 @@
             [class.active]="currentVariantImageIdx === idx"
             (click)="selectVariantThumbnail(idx)"
             [title]="'Góc xem ' + (idx + 1)">
-            <img [src]="getVariantThumbUrl(img)" [alt]="'Góc xem ' + (idx + 1)" />
+            <img [src]="getVariantThumbUrl(img)" [alt]="'Góc xem ' + (idx + 1)"
+              (error)="onVariantGalleryImageError(idx, $event)" />
           </div>
         </div>
 
@@ -625,7 +627,8 @@
               <img
                 [src]="item.image || '/assets/img/furniture-placeholder.svg'"
                 [alt]="item.name"
-                loading="lazy" />
+                loading="lazy"
+                (error)="onCartImageError($event)" />
             </div>
 
             <!-- Cột nội dung (Chỉ có 2 hàng) -->

@@ -665,7 +665,7 @@ export class ExploreComponent implements OnInit, OnDestroy {
     this.ratingCounts = counts;
   }
 
-  // Tính toán khoảng giá cực tiểu / cực đại thực tế từ toàn bộ sản phẩm trong DB (lưu cache O(1))
+  // Tính toán khoảng giá cực tiểu / cực đại thực tế theo đúng giá hiển thị trên thẻ sản phẩm
   computeDynamicPriceRange() {
     if (!this.products || this.products.length === 0) {
       this.dynamicMinPrice = 0;
@@ -675,19 +675,26 @@ export class ExploreComponent implements OnInit, OnDestroy {
     let min = Infinity;
     let max = 0;
     for (const prod of this.products) {
-      const p = prod.currentPrice ?? (prod.prices?.[0]?.price || 0);
+      const p = this.getProductPriceVal(prod);
       if (p > 0 && p < min) min = p;
       if (p > max) max = p;
-      if (prod.colorSwatches && prod.colorSwatches.length > 0) {
-        for (const sw of prod.colorSwatches) {
-          const sp = sw.calculatedPrice ?? sw.price ?? p;
-          if (sp > 0 && sp < min) min = sp;
-          if (sp > max) max = sp;
-        }
-      }
     }
-    this.dynamicMinPrice = min === Infinity ? 0 : min;
-    this.dynamicMaxPrice = max > 0 ? max : 100000000;
+    const rawMin = min === Infinity ? 0 : min;
+    const rawMax = max > 0 ? max : 100000000;
+    const getStep = (range: number) =>
+      range > 50000000 ? 500000 : (range > 10000000 ? 100000 : (range > 1000000 ? 50000 : 10000));
+
+    let step = getStep(rawMax - rawMin);
+    let alignedMin = Math.floor(rawMin / step) * step;
+    let alignedMax = Math.ceil(rawMax / step) * step;
+    const finalStep = getStep(alignedMax - alignedMin);
+    if (finalStep !== step) {
+      alignedMin = Math.floor(rawMin / finalStep) * finalStep;
+      alignedMax = Math.ceil(rawMax / finalStep) * finalStep;
+    }
+
+    this.dynamicMinPrice = alignedMin;
+    this.dynamicMaxPrice = alignedMax;
   }
 
   // Tái tính toán giá trị khuyến mãi khi danh sách chiến dịch thay đổi
@@ -882,24 +889,12 @@ export class ExploreComponent implements OnInit, OnDestroy {
         if (!text.includes(q)) return false;
       }
 
-      // 10. Kiểm tra khoảng giá
-      const currentPrice = this.getProductPriceVal(prod);
-      if (currentPrice >= min && currentPrice <= max) {
+      // 10. Kiểm tra khoảng giá (khớp 100% với giá hiển thị thực tế trên thẻ sản phẩm)
+      if (!isPriceFiltered) {
         return true;
       }
-
-      if (isPriceFiltered && prod.colorSwatches && prod.colorSwatches.length > 1) {
-        const matchingSwatch = prod.colorSwatches.find(sw => {
-          const swPrice = sw.calculatedPrice ?? this.getSwatchPrice(sw, prod);
-          return swPrice >= min && swPrice <= max;
-        });
-        if (matchingSwatch) {
-          this.selectedVariantMap[prod.productId] = matchingSwatch;
-          return true;
-        }
-      }
-
-      return false;
+      const currentPrice = this.getProductPriceVal(prod);
+      return currentPrice >= min && currentPrice <= max;
     });
 
     // Tiêu chí lọc "Đang khuyến mãi"
@@ -998,11 +993,10 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   getProductPriceVal(prod: CatalogProduct): number {
-    const selected = this.getSelectedSwatch(prod);
-    if (selected && selected.calculatedPrice !== undefined) {
-      return selected.calculatedPrice;
+    if (prod.currentPrice !== undefined && prod.currentPrice !== null) {
+      return Number(prod.currentPrice) || 0;
     }
-    return prod.currentPrice ?? (prod.prices?.[0]?.price || 0);
+    return Number(prod.basePrice ?? prod.prices?.[0]?.price ?? 0) || 0;
   }
 
   getProductPriceFormatted(prod: CatalogProduct): string {
@@ -1144,8 +1138,17 @@ export class ExploreComponent implements OnInit, OnDestroy {
   }
 
   formatPriceShort(price: number): string {
-    if (price >= 1000000) return (price / 1000000).toFixed(0) + 'tr';
-    return price + 'đ';
+    if (price >= 1000000) {
+      const millions = price / 1000000;
+      const formatted = Number.isInteger(millions)
+        ? String(millions)
+        : millions.toFixed(1).replace(/\.0$/, '');
+      return `${formatted}tr`;
+    }
+    if (price >= 1000) {
+      return `${Math.round(price / 1000)}k`;
+    }
+    return `${price}đ`;
   }
 
   removeCategory(cat: string) {

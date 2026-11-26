@@ -8,6 +8,7 @@ import { WishlistService } from '../../../core/services/wishlist.service';
 import { CompareService } from '../../../core/services/compare.service';
 import { QuickViewService } from '../../../core/services/quick-view.service';
 import { PromotionService, formatDiscountBadgeText } from '../../../core/services/promotion.service';
+import { resolveNextImageFallback, PLACEHOLDER_PRODUCT_IMAGE } from '../../utils/image-fallback.util';
 
 const COMPARE_STORAGE_KEY = 'dcor_compare_items';
 
@@ -420,9 +421,19 @@ export class ProductCardComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  private failedCardUrls = new Set<string>();
+
   onImageError(index: number) {
-    if (this.cardImages[index]) {
-      this.cardImages[index] = '/assets/img/furniture-placeholder.svg';
+    const failedUrl = this.cardImages[index];
+    if (!failedUrl || failedUrl === PLACEHOLDER_PRODUCT_IMAGE) return;
+
+    this.failedCardUrls.add(failedUrl);
+    const coverFallbacks = Array.isArray(this.product?.images)
+      ? this.product.images.filter((u: any) => typeof u === 'string' && u.startsWith('http') && !u.includes('/image/fetch/'))
+      : [];
+    const nextUrl = resolveNextImageFallback(failedUrl, coverFallbacks, this.failedCardUrls);
+    if (nextUrl !== failedUrl) {
+      this.cardImages[index] = nextUrl;
       this.cdr.markForCheck();
     }
   }
