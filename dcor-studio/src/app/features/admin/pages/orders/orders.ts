@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { 
@@ -9,9 +10,13 @@ import {
   Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft, 
   ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
   Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown, ExternalLink,
-  Layers
+  Layers, Plus, Trash2, Minus, ShoppingBag, User
 } from 'lucide-angular';
 import { IconComponent } from '../../../../shared/components/icon/icon';
+import { CustomDropdownComponent, DropdownOption } from '../../../../shared/components/custom-dropdown/custom-dropdown';
+import { ALL_VIETNAM_PROVINCE_NAMES, getWardsForProvince } from '../../../../shared/data/vietnam-administrative.data';
+import { PromotionService, Promotion } from '../../../../core/services/promotion.service';
+import { environment } from '../../../../../environments/environment';
 import { OrdersService } from './services/orders.service';
 import { 
   Order, OrderV2, AdminOrderStatus, PaymentStatus, UserStatusView, 
@@ -23,7 +28,7 @@ export type KpiTab = 'ALL' | 'CONFIRMATION' | 'PENDING' | 'CONFIRMED' | 'PROCESS
 @Component({
   selector: 'app-orders',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, IconComponent],
+  imports: [CommonModule, FormsModule, RouterModule, LucideAngularModule, IconComponent, CustomDropdownComponent],
   templateUrl: './orders.html',
   styleUrls: ['./orders.css']
 })
@@ -44,7 +49,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     Package, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, ChevronsLeft,
     ChevronsRight, ShieldCheck, DollarSign, CornerDownLeft, FileText, Check, X,
     Building2, CreditCard, AlertCircle, RotateCcw, Box, MapPin, ChevronDown, ExternalLink,
-    Layers
+    Layers, Plus, Trash2, Minus, ShoppingBag, User
   };
 
   orders: OrderV2[] = [];
@@ -252,6 +257,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   constructor(
     private ordersService: OrdersService,
+    private promotionService: PromotionService,
+    private http: HttpClient,
     private router: Router,
     private route: ActivatedRoute,
     private cdr: ChangeDetectorRef
@@ -754,6 +761,461 @@ export class OrdersComponent implements OnInit, OnDestroy {
   closeToast() {
     this.showToast = false;
     this.pauseToastTimer();
+  }
+
+  formatCurrency(val: number): string {
+    return (Number(val) || 0).toLocaleString('vi-VN') + ' ₫';
+  }
+
+  // ============================================================================
+  // MODAL TẠO ĐƠN HÀNG MỚI (ADMIN)
+  // ============================================================================
+  isCreateOrderModalOpen = false;
+  isConfirmCancelCreateOrderOpen = false;
+  isCreatingOrder = false;
+  createOrderError = '';
+
+  readonly createProvinces: string[] = ALL_VIETNAM_PROVINCE_NAMES;
+  createWards: string[] = [];
+
+  createOrderForm = {
+    receiverName: '',
+    phone: '',
+    email: '',
+    province: 'Thành phố Hồ Chí Minh',
+    ward: '',
+    detailAddress: '',
+    shippingNotes: '',
+    paymentMethod: 'COD' as 'COD' | 'BANK_TRANSFER',
+    voucherCode: '',
+    freeshipVoucherCode: '',
+    isInvoiceRequired: false,
+    companyName: '',
+    taxCode: '',
+    companyAddress: '',
+    invoiceEmail: ''
+  };
+
+  availablePromotions: Promotion[] = [];
+
+  catalogProducts: any[] = [];
+  isLoadingCatalog = false;
+  selectedCatalogCategoryId = '';
+  selectedCatalogProductId = '';
+  selectedCatalogVariantId = '';
+  createOrderItems: Array<{
+    productId: string;
+    variantId: string;
+    name: string;
+    variantName: string;
+    price: number;
+    quantity: number;
+    image: string;
+  }> = [];
+
+  private getProductCategoryMeta(p: any): { parentId: string; parentName: string; childId: string; childName: string } {
+    const cat = p?.category;
+    const parent = cat?.parent;
+    const childId = String(cat?.id || p?.categoryId || p?.categoryName || 'OTHER');
+    const childName = cat?.name || p?.categoryName || 'Khác';
+    const parentId = parent ? String(parent.id) : childId;
+    const parentName = parent ? parent.name : childName;
+    return { parentId, parentName, childId, childName };
+  }
+
+  get catalogCategoryOptions(): DropdownOption[] {
+    const tree = new Map<string, { value: string; label: string; children: Map<string, DropdownOption> }>();
+    for (const p of this.catalogProducts) {
+      const m = this.getProductCategoryMeta(p);
+      if (!tree.has(m.parentId)) {
+        tree.set(m.parentId, {
+          value: m.parentId,
+          label: m.parentName,
+          children: new Map<string, DropdownOption>()
+        });
+      }
+      if (m.childId !== m.parentId) {
+        const group = tree.get(m.parentId)!;
+        if (!group.children.has(m.childId)) {
+          group.children.set(m.childId, { value: m.childId, label: m.childName });
+        }
+      }
+    }
+
+    return Array.from(tree.values())
+      .map(g => ({
+        value: g.value,
+        label: g.label,
+        children: Array.from(g.children.values()).sort((a, b) => a.label.localeCompare(b.label, 'vi'))
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+  }
+
+  get catalogProductOptions(): DropdownOption[] {
+    if (!this.selectedCatalogCategoryId) return [];
+    return this.catalogProducts
+      .filter(p => {
+        const m = this.getProductCategoryMeta(p);
+        return m.childId === this.selectedCatalogCategoryId || m.parentId === this.selectedCatalogCategoryId;
+      })
+      .map(p => {
+        const hasVariants = Array.isArray(p.variants) && p.variants.length > 0;
+        const image = (Array.isArray(p.images) && p.images[0]) || p.imageUrl || '/assets/img/furniture-placeholder.svg';
+        const label = hasVariants
+          ? p.name
+          : `${p.name} (${this.formatCurrency(p.basePrice || 0)})`;
+        return {
+          value: p.id,
+          label,
+          image
+        };
+      });
+  }
+
+  get selectedCatalogProduct(): any | null {
+    return this.catalogProducts.find(p => p.id === this.selectedCatalogProductId) || null;
+  }
+
+  get selectedProductVariantOptions(): DropdownOption[] {
+    const prod = this.selectedCatalogProduct;
+    if (!prod || !Array.isArray(prod.variants)) return [];
+    return prod.variants.map((v: any) => ({
+      value: v.id,
+      label: `${v.name || v.sku || 'Mặc định'} - ${this.formatCurrency(Number(v.price) || Number(prod.basePrice) || 0)}`
+    }));
+  }
+
+  get createProductVoucherOptions(): DropdownOption[] {
+    const base: DropdownOption[] = [{ value: '', label: '-- Không áp dụng mã giảm giá --' }];
+    const sub = this.createOrderSubTotal;
+    const list = this.availablePromotions
+      .filter(p => !p.isFreeShip && p.isActive !== false)
+      .map(p => {
+        const min = Number(p.minOrderValue || 0);
+        const disabled = min > 0 && sub < min;
+        const desc = p.discountType === 'PERCENT'
+          ? `-${p.discountValue}%`
+          : `-${this.formatCurrency(p.discountValue)}`;
+        const minNote = disabled ? ` (Đơn tối thiểu ${this.formatCurrency(min)})` : '';
+        return {
+          value: p.code,
+          label: `${p.code} (${desc})${minNote}`,
+          disabled
+        };
+      });
+    return base.concat(list);
+  }
+
+  get createFreeshipVoucherOptions(): DropdownOption[] {
+    const base: DropdownOption[] = [{ value: '', label: '-- Không áp dụng mã Freeship --' }];
+    const sub = this.createOrderSubTotal;
+    const list = this.availablePromotions
+      .filter(p => !!p.isFreeShip && p.isActive !== false)
+      .map(p => {
+        const min = Number(p.minOrderValue || 0);
+        const disabled = min > 0 && sub < min;
+        const minNote = disabled ? ` (Đơn tối thiểu ${this.formatCurrency(min)})` : '';
+        return {
+          value: p.code,
+          label: `${p.code} (Miễn phí/giảm ship)${minNote}`,
+          disabled
+        };
+      });
+    return base.concat(list);
+  }
+
+  get createOrderSubTotal(): number {
+    return this.createOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }
+
+  get createOrderProductDiscount(): number {
+    if (!this.createOrderForm.voucherCode || this.createOrderSubTotal <= 0) return 0;
+    const promo = this.availablePromotions.find(p => p.code === this.createOrderForm.voucherCode && !p.isFreeShip);
+    if (!promo) return 0;
+    if (promo.minOrderValue && this.createOrderSubTotal < promo.minOrderValue) return 0;
+    let discount = promo.discountType === 'PERCENT'
+      ? Math.round((this.createOrderSubTotal * promo.discountValue) / 100)
+      : Number(promo.discountValue || 0);
+    if (promo.maxDiscountAmount && discount > promo.maxDiscountAmount) {
+      discount = Number(promo.maxDiscountAmount);
+    }
+    return Math.min(this.createOrderSubTotal, Math.max(0, discount));
+  }
+
+  get createOrderShippingFee(): number {
+    if (this.createOrderItems.length === 0) return 0;
+    return this.createOrderSubTotal >= 50000000 ? 0 : 300000;
+  }
+
+  get createOrderFreeshipDiscount(): number {
+    if (!this.createOrderForm.freeshipVoucherCode || this.createOrderShippingFee <= 0) return 0;
+    const promo = this.availablePromotions.find(p => p.code === this.createOrderForm.freeshipVoucherCode && !!p.isFreeShip);
+    if (!promo) return 0;
+    if (promo.minOrderValue && this.createOrderSubTotal < promo.minOrderValue) return 0;
+    const discount = promo.discountType === 'PERCENT'
+      ? Math.round((this.createOrderShippingFee * promo.discountValue) / 100)
+      : Number(promo.discountValue || this.createOrderShippingFee);
+    return Math.min(this.createOrderShippingFee, Math.max(0, discount));
+  }
+
+  get createOrderTotal(): number {
+    return Math.max(
+      0,
+      this.createOrderSubTotal - this.createOrderProductDiscount + this.createOrderShippingFee - this.createOrderFreeshipDiscount
+    );
+  }
+
+  get isCreateOrderHighValue(): boolean {
+    return this.createOrderTotal > 50000000;
+  }
+
+  openCreateOrderModal(): void {
+    this.isCreateOrderModalOpen = true;
+    this.isConfirmCancelCreateOrderOpen = false;
+    this.createOrderError = '';
+    this.createOrderForm = {
+      receiverName: '',
+      phone: '',
+      email: '',
+      province: 'Thành phố Hồ Chí Minh',
+      ward: '',
+      detailAddress: '',
+      shippingNotes: '',
+      paymentMethod: 'COD',
+      voucherCode: '',
+      freeshipVoucherCode: '',
+      isInvoiceRequired: false,
+      companyName: '',
+      taxCode: '',
+      companyAddress: '',
+      invoiceEmail: ''
+    };
+    this.createWards = getWardsForProvince('Thành phố Hồ Chí Minh');
+    this.createOrderItems = [];
+    this.selectedCatalogCategoryId = '';
+    this.selectedCatalogProductId = '';
+    this.selectedCatalogVariantId = '';
+
+    if (this.catalogProducts.length === 0) {
+      this.loadCatalogProducts();
+    }
+    if (this.availablePromotions.length === 0) {
+      this.promotionService.loadPromotions().subscribe(promos => {
+        this.availablePromotions = promos || [];
+        this.cdr.markForCheck();
+      });
+    }
+    this.cdr.markForCheck();
+  }
+
+  private hasCreateOrderDraftContent(): boolean {
+    const f = this.createOrderForm;
+    return !!(
+      f.receiverName.trim() ||
+      f.phone.trim() ||
+      f.email.trim() ||
+      f.detailAddress.trim() ||
+      f.shippingNotes.trim() ||
+      f.voucherCode ||
+      f.freeshipVoucherCode ||
+      f.isInvoiceRequired ||
+      this.createOrderItems.length > 0
+    );
+  }
+
+  closeCreateOrderModal(): void {
+    if (this.isCreatingOrder) return;
+    if (this.hasCreateOrderDraftContent()) {
+      this.isConfirmCancelCreateOrderOpen = true;
+      this.cdr.markForCheck();
+      return;
+    }
+    this.isCreateOrderModalOpen = false;
+    this.createOrderError = '';
+    this.cdr.markForCheck();
+  }
+
+  dismissCancelCreateOrder(): void {
+    this.isConfirmCancelCreateOrderOpen = false;
+    this.cdr.markForCheck();
+  }
+
+  confirmCancelCreateOrder(): void {
+    this.isConfirmCancelCreateOrderOpen = false;
+    this.isCreateOrderModalOpen = false;
+    this.createOrderError = '';
+    this.cdr.markForCheck();
+  }
+
+  onCreateProvinceChange(): void {
+    this.createWards = getWardsForProvince(this.createOrderForm.province);
+    this.createOrderForm.ward = '';
+    this.cdr.markForCheck();
+  }
+
+  private loadCatalogProducts(): void {
+    this.isLoadingCatalog = true;
+    this.http.get<any>(`${environment.apiUrl}/products?limit=200`).subscribe({
+      next: (res) => {
+        const list = Array.isArray(res) ? res : (res?.data || res?.products || []);
+        this.catalogProducts = list;
+        this.isLoadingCatalog = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoadingCatalog = false;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  onCatalogCategorySelected(categoryId: string): void {
+    this.selectedCatalogCategoryId = categoryId;
+    this.selectedCatalogProductId = '';
+    this.selectedCatalogVariantId = '';
+    this.cdr.markForCheck();
+  }
+
+  onCatalogProductSelected(productId: string): void {
+    this.selectedCatalogProductId = productId;
+    const prod = this.selectedCatalogProduct;
+    this.selectedCatalogVariantId = prod?.variants?.[0]?.id || '';
+    this.cdr.markForCheck();
+  }
+
+  addSelectedProductToOrder(): void {
+    const prod = this.selectedCatalogProduct;
+    if (!prod) {
+      this.createOrderError = 'Vui lòng chọn sản phẩm trước khi thêm.';
+      return;
+    }
+    this.createOrderError = '';
+    const variant = (prod.variants || []).find((v: any) => v.id === this.selectedCatalogVariantId) || prod.variants?.[0] || null;
+    const variantId = variant?.id || prod.id;
+    const price = Number(variant?.price ?? prod.basePrice ?? 0);
+    const image = (Array.isArray(prod.images) && prod.images[0]) || prod.imageUrl || '/assets/img/furniture-placeholder.svg';
+
+    const existing = this.createOrderItems.find(i => i.variantId === variantId);
+    if (existing) {
+      existing.quantity = Math.min(100, existing.quantity + 1);
+    } else {
+      this.createOrderItems.push({
+        productId: prod.id,
+        variantId,
+        name: prod.name,
+        variantName: variant?.name || variant?.sku || 'Tiêu chuẩn',
+        price,
+        quantity: 1,
+        image
+      });
+    }
+
+    if (this.isCreateOrderHighValue) {
+      this.createOrderForm.paymentMethod = 'BANK_TRANSFER';
+    }
+    this.cdr.markForCheck();
+  }
+
+  updateCreateItemQty(index: number, delta: number): void {
+    const item = this.createOrderItems[index];
+    if (!item) return;
+    const nextQty = item.quantity + delta;
+    if (nextQty <= 0) {
+      this.createOrderItems.splice(index, 1);
+    } else {
+      item.quantity = Math.min(100, nextQty);
+    }
+    if (this.isCreateOrderHighValue) {
+      this.createOrderForm.paymentMethod = 'BANK_TRANSFER';
+    }
+    this.cdr.markForCheck();
+  }
+
+  removeCreateItem(index: number): void {
+    this.createOrderItems.splice(index, 1);
+    this.cdr.markForCheck();
+  }
+
+  submitCreateOrder(): void {
+    const f = this.createOrderForm;
+    if (!f.receiverName.trim()) {
+      this.createOrderError = 'Vui lòng nhập họ tên người nhận.';
+      return;
+    }
+    const cleanPhone = f.phone.replace(/\s+/g, '');
+    if (!/^(03|05|07|08|09)\d{8}$/.test(cleanPhone)) {
+      this.createOrderError = 'Số điện thoại không hợp lệ (cần 10 chữ số, đầu số 03, 05, 07, 08, 09).';
+      return;
+    }
+    if (!f.province || !f.ward || !f.detailAddress.trim()) {
+      this.createOrderError = 'Vui lòng chọn Tỉnh/Thành phố, Phường/Xã và nhập địa chỉ chi tiết.';
+      return;
+    }
+    if (this.createOrderItems.length === 0) {
+      this.createOrderError = 'Vui lòng thêm ít nhất 1 sản phẩm vào đơn hàng.';
+      return;
+    }
+    if (f.isInvoiceRequired) {
+      if (!f.companyName.trim() || !f.taxCode.trim() || !f.companyAddress.trim() || !f.invoiceEmail.trim()) {
+        this.createOrderError = 'Vui lòng điền đầy đủ thông tin xuất Hóa đơn điện tử (VAT).';
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.invoiceEmail.trim())) {
+        this.createOrderError = 'Email nhận hóa đơn điện tử không đúng định dạng.';
+        return;
+      }
+    }
+
+    this.createOrderError = '';
+    this.isCreatingOrder = true;
+    const fullAddress = [f.detailAddress.trim(), f.ward, f.province].filter(Boolean).join(', ');
+
+    const payload = {
+      receiverName: f.receiverName.trim(),
+      phone: cleanPhone,
+      email: f.email.trim() || undefined,
+      address: fullAddress,
+      province: f.province,
+      ward: f.ward,
+      detailAddress: f.detailAddress.trim(),
+      shippingNotes: f.shippingNotes.trim() || undefined,
+      paymentMethod: this.isCreateOrderHighValue ? 'BANK_TRANSFER' : f.paymentMethod,
+      voucherCode: f.voucherCode || undefined,
+      freeshipVoucherCode: f.freeshipVoucherCode || undefined,
+      invoice: f.isInvoiceRequired ? {
+        companyName: f.companyName.trim(),
+        taxCode: f.taxCode.trim(),
+        companyAddress: f.companyAddress.trim(),
+        invoiceEmail: f.invoiceEmail.trim()
+      } : undefined,
+      items: this.createOrderItems.map(i => ({
+        variantId: i.variantId,
+        name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+        image: i.image
+      }))
+    };
+
+    this.http.post<any>(`${environment.apiUrl}/orders`, payload).subscribe({
+      next: (res) => {
+        this.isCreatingOrder = false;
+        this.isCreateOrderModalOpen = false;
+        const orderNum = res?.order?.orderNumber || res?.orderNumber || res?.data?.orderNumber || '';
+        this.triggerToast(
+          'Tạo đơn hàng thành công',
+          orderNum ? `Đơn hàng #${orderNum} đã được tạo và đồng bộ vào hệ thống.` : 'Đơn hàng mới đã được tạo.',
+          'success'
+        );
+        this.ordersService.fetchOrders();
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        this.isCreatingOrder = false;
+        this.createOrderError = err?.error?.message || 'Không thể tạo đơn hàng. Vui lòng thử lại.';
+        this.cdr.markForCheck();
+      }
+    });
   }
 }
 

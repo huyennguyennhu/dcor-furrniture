@@ -26,9 +26,15 @@
   </div>
 
   <!-- Page Header -->
-  <div style="margin-bottom: 24px;">
-    <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-primary, #111827);">Danh sách đơn hàng</h2>
-    <p style="font-size: 14px; color: var(--text-secondary, #6B7280); margin: 0;">Theo dõi, xử lý và kiểm soát toàn bộ chu trình đơn hàng theo thời gian thực.</p>
+  <div class="orders-page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 24px;">
+    <div>
+      <h2 style="font-size: 24px; font-weight: 700; margin: 0 0 6px 0; color: var(--text-primary, #111827);">Danh sách đơn hàng</h2>
+      <p style="font-size: 14px; color: var(--text-secondary, #6B7280); margin: 0;">Theo dõi, xử lý và kiểm soát toàn bộ chu trình đơn hàng theo thời gian thực.</p>
+    </div>
+    <button type="button" class="v2-btn-primary" (click)="openCreateOrderModal()" title="Tạo đơn hàng mới">
+      <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+      <span>Tạo đơn hàng</span>
+    </button>
   </div>
 
   <!-- Order Status KPI Filter Cards (8 Cards: 4 per row) -->
@@ -546,6 +552,304 @@
         >
           <lucide-angular [img]="icons.ChevronsRight" size="15"></lucide-angular>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TẠO ĐƠN HÀNG MỚI -->
+  <div class="create-order-overlay" *ngIf="isCreateOrderModalOpen" (click)="closeCreateOrderModal()">
+    <div class="create-order-modal" (click)="$event.stopPropagation()">
+      <div class="create-order-header">
+        <div class="create-order-title-wrap">
+          <div class="create-order-icon-box">
+            <lucide-angular [img]="icons.ShoppingBag" size="20"></lucide-angular>
+          </div>
+          <div>
+            <h3>Tạo đơn hàng mới</h3>
+            <p>Khởi tạo đơn hàng trực tiếp cho khách tại showroom hoặc qua hotline.</p>
+          </div>
+        </div>
+        <button type="button" class="create-order-close" (click)="closeCreateOrderModal()">
+          <lucide-angular [img]="icons.X" size="18"></lucide-angular>
+        </button>
+      </div>
+
+      <div class="create-order-body">
+        <div *ngIf="createOrderError" class="create-order-error">
+          <lucide-angular [img]="icons.AlertCircle" size="16"></lucide-angular>
+          <span>{{ createOrderError }}</span>
+        </div>
+
+        <div class="create-order-grid">
+          <!-- Cột trái: Thông tin khách & Địa chỉ & Thanh toán -->
+          <div class="create-order-col">
+            <div class="co-section-card">
+              <div class="co-section-title">
+                <lucide-angular [img]="icons.User" size="16"></lucide-angular>
+                <span>Thông tin người nhận & Địa chỉ</span>
+              </div>
+
+              <div class="co-form-grid">
+                <div class="co-form-group">
+                  <label>Họ tên người nhận <span class="req">*</span></label>
+                  <input type="text" [(ngModel)]="createOrderForm.receiverName" placeholder="VD: Nguyễn Văn A" class="co-input" />
+                </div>
+                <div class="co-form-group">
+                  <label>Số điện thoại <span class="req">*</span></label>
+                  <input type="tel" [(ngModel)]="createOrderForm.phone" placeholder="VD: 0912345678" class="co-input" />
+                </div>
+                <div class="co-form-group full">
+                  <label>Email nhận thông báo (tùy chọn)</label>
+                  <input type="email" [(ngModel)]="createOrderForm.email" placeholder="khachhang@gmail.com" class="co-input" />
+                </div>
+                <div class="co-form-group">
+                  <label>Tỉnh / Thành phố <span class="req">*</span></label>
+                  <app-custom-dropdown
+                    [(ngModel)]="createOrderForm.province"
+                    (ngModelChange)="onCreateProvinceChange()"
+                    [options]="createProvinces"
+                    placeholder="-- Chọn Tỉnh / Thành phố --"
+                    [searchable]="true"
+                    searchPlaceholder="Tìm Tỉnh / Thành phố...">
+                  </app-custom-dropdown>
+                </div>
+                <div class="co-form-group">
+                  <label>Phường / Xã / Thị trấn <span class="req">*</span></label>
+                  <app-custom-dropdown
+                    [(ngModel)]="createOrderForm.ward"
+                    [options]="createWards"
+                    placeholder="-- Chọn Phường / Xã --"
+                    [searchable]="true"
+                    searchPlaceholder="Tìm Phường / Xã...">
+                  </app-custom-dropdown>
+                </div>
+                <div class="co-form-group full">
+                  <label>Số nhà, tên đường cụ thể <span class="req">*</span></label>
+                  <input type="text" [(ngModel)]="createOrderForm.detailAddress" placeholder="VD: 123 Nguyễn Huệ, Tòa nhà A" class="co-input" />
+                </div>
+                <div class="co-form-group full">
+                  <label>Ghi chú giao hàng</label>
+                  <textarea [(ngModel)]="createOrderForm.shippingNotes" rows="2" placeholder="Ghi chú giờ giao, thang máy, lưu ý..." class="co-textarea"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="co-section-card">
+              <div class="co-section-title">
+                <lucide-angular [img]="icons.CreditCard" size="16"></lucide-angular>
+                <span>Phương thức thanh toán</span>
+              </div>
+              <div class="co-payment-options">
+                <label class="co-pay-option" [class.active]="createOrderForm.paymentMethod === 'COD'" [class.disabled]="isCreateOrderHighValue">
+                  <input type="radio" name="coPayMethod" value="COD" [(ngModel)]="createOrderForm.paymentMethod" [disabled]="isCreateOrderHighValue" />
+                  <div>
+                    <strong>Thanh toán khi nhận hàng (COD)</strong>
+                    <span>{{ isCreateOrderHighValue ? 'Không áp dụng cho đơn trên 50 triệu' : 'Thu tiền mặt hoặc quẹt thẻ khi giao' }}</span>
+                  </div>
+                </label>
+                <label class="co-pay-option" [class.active]="createOrderForm.paymentMethod === 'BANK_TRANSFER'">
+                  <input type="radio" name="coPayMethod" value="BANK_TRANSFER" [(ngModel)]="createOrderForm.paymentMethod" />
+                  <div>
+                    <strong>Chuyển khoản ngân hàng</strong>
+                    <span>{{ isCreateOrderHighValue ? 'Đơn > 50 triệu yêu cầu đặt cọc tối thiểu 30%' : 'Chuyển khoản toàn bộ qua VietQR' }}</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Xuất hóa đơn điện tử (VAT) -->
+            <div class="co-section-card">
+              <div class="invoice-switch-header">
+                <div class="switch-title-wrap">
+                  <lucide-angular [img]="icons.FileText" size="20"></lucide-angular>
+                  <div>
+                    <h3 class="switch-title">Yêu cầu xuất Hóa đơn điện tử (VAT)</h3>
+                    <p class="switch-subtitle">DCor hỗ trợ xuất hóa đơn GTGT hợp lệ cho doanh nghiệp và cá nhân.</p>
+                  </div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" name="isInvoiceRequired" [(ngModel)]="createOrderForm.isInvoiceRequired" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div *ngIf="createOrderForm.isInvoiceRequired" class="co-form-grid" style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed #E5E7EB;">
+                <div class="co-form-group full">
+                  <label>Tên công ty / Tổ chức <span class="req">*</span></label>
+                  <input type="text" [(ngModel)]="createOrderForm.companyName" placeholder="VD: Công ty TNHH Nội thất DCor" class="co-input" />
+                </div>
+                <div class="co-form-group">
+                  <label>Mã số thuế (MST) <span class="req">*</span></label>
+                  <input type="text" [(ngModel)]="createOrderForm.taxCode" placeholder="VD: 0101234567" class="co-input" />
+                </div>
+                <div class="co-form-group">
+                  <label>Email nhận hóa đơn <span class="req">*</span></label>
+                  <input type="email" [(ngModel)]="createOrderForm.invoiceEmail" placeholder="ketoan@congty.com" class="co-input" />
+                </div>
+                <div class="co-form-group full">
+                  <label>Địa chỉ theo giấy phép kinh doanh <span class="req">*</span></label>
+                  <input type="text" [(ngModel)]="createOrderForm.companyAddress" placeholder="Địa chỉ trụ sở đăng ký kinh doanh" class="co-input" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột phải: Chọn sản phẩm & Tóm tắt tiền -->
+          <div class="create-order-col">
+            <div class="co-section-card">
+              <div class="co-section-title">
+                <lucide-angular [img]="icons.Package" size="16"></lucide-angular>
+                <span>Sản phẩm trong đơn ({{ createOrderItems.length }})</span>
+              </div>
+
+              <div class="co-product-picker">
+                <div style="margin-bottom: 8px;">
+                  <app-custom-dropdown
+                    [ngModel]="selectedCatalogCategoryId"
+                    (ngModelChange)="onCatalogCategorySelected($event)"
+                    [options]="catalogCategoryOptions"
+                    [placeholder]="isLoadingCatalog ? 'Đang tải danh mục...' : '-- Chọn danh mục sản phẩm --'"
+                    [searchable]="true"
+                    searchPlaceholder="Tìm danh mục sản phẩm...">
+                  </app-custom-dropdown>
+                </div>
+
+                <div class="co-picker-row">
+                  <div style="flex: 1; min-width: 0;">
+                    <app-custom-dropdown
+                      [ngModel]="selectedCatalogProductId"
+                      (ngModelChange)="onCatalogProductSelected($event)"
+                      [options]="catalogProductOptions"
+                      [disabled]="!selectedCatalogCategoryId"
+                      [placeholder]="!selectedCatalogCategoryId ? '-- Chọn danh mục trước --' : '-- Tìm & chọn sản phẩm --'"
+                      [searchable]="true"
+                      searchPlaceholder="Tìm theo tên sản phẩm...">
+                    </app-custom-dropdown>
+                  </div>
+                  <button type="button" class="co-btn-add-item" (click)="addSelectedProductToOrder()" [disabled]="!selectedCatalogProductId">
+                    <lucide-angular [img]="icons.Plus" size="15"></lucide-angular>
+                    <span>Thêm</span>
+                  </button>
+                </div>
+
+                <div *ngIf="selectedProductVariantOptions.length > 1" style="margin-top: 8px;">
+                  <app-custom-dropdown
+                    [(ngModel)]="selectedCatalogVariantId"
+                    [options]="selectedProductVariantOptions"
+                    placeholder="-- Chọn biến thể --"
+                    [searchable]="false">
+                  </app-custom-dropdown>
+                </div>
+              </div>
+
+              <div class="co-items-list" *ngIf="createOrderItems.length > 0; else emptyOrderItems">
+                <div class="co-item-row" *ngFor="let item of createOrderItems; let idx = index">
+                  <img [src]="item.image" [alt]="item.name" class="co-item-thumb" />
+                  <div class="co-item-info">
+                    <div class="co-item-name">{{ item.name }}</div>
+                    <div class="co-item-variant">{{ item.variantName }} • {{ formatCurrency(item.price) }}</div>
+                  </div>
+                  <div class="co-item-qty">
+                    <button type="button" (click)="updateCreateItemQty(idx, -1)">
+                      <lucide-angular [img]="icons.Minus" size="12"></lucide-angular>
+                    </button>
+                    <span>{{ item.quantity }}</span>
+                    <button type="button" (click)="updateCreateItemQty(idx, 1)">
+                      <lucide-angular [img]="icons.Plus" size="12"></lucide-angular>
+                    </button>
+                  </div>
+                  <button type="button" class="co-item-remove" (click)="removeCreateItem(idx)" title="Xóa sản phẩm">
+                    <lucide-angular [img]="icons.Trash2" size="14"></lucide-angular>
+                  </button>
+                </div>
+              </div>
+
+              <ng-template #emptyOrderItems>
+                <div class="co-empty-items">
+                  Chưa có sản phẩm nào. Hãy tìm và bấm <strong>+ Thêm</strong> ở trên.
+                </div>
+              </ng-template>
+            </div>
+
+            <!-- Khuyến mãi / Mã ưu đãi -->
+            <div class="co-section-card">
+              <div class="co-section-title">
+                <lucide-angular [img]="icons.DollarSign" size="16"></lucide-angular>
+                <span>Khuyến mãi & Mã ưu đãi</span>
+              </div>
+              <div class="co-form-grid">
+                <div class="co-form-group full">
+                  <label>Mã giảm giá đơn hàng</label>
+                  <app-custom-dropdown
+                    [(ngModel)]="createOrderForm.voucherCode"
+                    [options]="createProductVoucherOptions"
+                    placeholder="-- Không áp dụng mã giảm giá --"
+                    [searchable]="false">
+                  </app-custom-dropdown>
+                </div>
+                <div class="co-form-group full">
+                  <label>Mã miễn phí vận chuyển (Freeship)</label>
+                  <app-custom-dropdown
+                    [(ngModel)]="createOrderForm.freeshipVoucherCode"
+                    [options]="createFreeshipVoucherOptions"
+                    placeholder="-- Không áp dụng mã Freeship --"
+                    [searchable]="false">
+                  </app-custom-dropdown>
+                </div>
+              </div>
+            </div>
+
+            <div class="co-summary-card">
+              <div class="co-summary-row">
+                <span>Tạm tính</span>
+                <strong>{{ formatCurrency(createOrderSubTotal) }}</strong>
+              </div>
+              <div class="co-summary-row" *ngIf="createOrderProductDiscount > 0" style="color: #059669;">
+                <span>Giảm giá ưu đãi ({{ createOrderForm.voucherCode }})</span>
+                <strong>-{{ formatCurrency(createOrderProductDiscount) }}</strong>
+              </div>
+              <div class="co-summary-row">
+                <span>Phí vận chuyển</span>
+                <strong>{{ createOrderShippingFee === 0 ? (createOrderItems.length ? 'Miễn phí' : '0 ₫') : formatCurrency(createOrderShippingFee) }}</strong>
+              </div>
+              <div class="co-summary-row" *ngIf="createOrderFreeshipDiscount > 0" style="color: #059669;">
+                <span>Hỗ trợ vận chuyển ({{ createOrderForm.freeshipVoucherCode }})</span>
+                <strong>-{{ formatCurrency(createOrderFreeshipDiscount) }}</strong>
+              </div>
+              <div class="co-summary-divider"></div>
+              <div class="co-summary-row total">
+                <span>Tổng thanh toán</span>
+                <strong>{{ formatCurrency(createOrderTotal) }}</strong>
+              </div>
+              <div *ngIf="isCreateOrderHighValue" class="co-deposit-note">
+                Đơn hàng trên 50 triệu: Yêu cầu đặt cọc trước 30% ({{ formatCurrency(createOrderTotal * 0.3) }}).
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="create-order-footer">
+        <button type="button" class="co-btn-cancel" (click)="closeCreateOrderModal()" [disabled]="isCreatingOrder">Hủy</button>
+        <button type="button" class="v2-btn-primary" (click)="submitCreateOrder()" [disabled]="isCreatingOrder">
+          <lucide-angular [img]="icons.CheckCircle2" size="16"></lucide-angular>
+          <span>{{ isCreatingOrder ? 'Đang tạo đơn...' : 'Xác nhận tạo đơn hàng' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL XÁC NHẬN HỦY TIẾN TRÌNH TẠO ĐƠN HÀNG -->
+  <div class="co-confirm-overlay" *ngIf="isConfirmCancelCreateOrderOpen" (click)="dismissCancelCreateOrder()">
+    <div class="co-confirm-box" (click)="$event.stopPropagation()">
+      <div class="co-confirm-icon">
+        <lucide-angular [img]="icons.AlertTriangle" size="24"></lucide-angular>
+      </div>
+      <h4>Hủy tiến trình tạo đơn hàng?</h4>
+      <p>Thông tin đơn hàng bạn đang nhập sẽ bị mất và không thể khôi phục. Bạn có chắc chắn muốn hủy không?</p>
+      <div class="co-confirm-actions">
+        <button type="button" class="co-btn-cancel" (click)="dismissCancelCreateOrder()">Tiếp tục tạo đơn</button>
+        <button type="button" class="co-btn-danger" (click)="confirmCancelCreateOrder()">Xác nhận hủy</button>
       </div>
     </div>
   </div>

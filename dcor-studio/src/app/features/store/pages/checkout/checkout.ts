@@ -361,6 +361,9 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', this.handleAddrDropdownCapture, true);
+    }
     this.checkUserAuth();
     this.initPromotionSync();
     this.initAdministrativeAddress();
@@ -450,6 +453,9 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('click', this.handleAddrDropdownCapture, true);
+    }
     this.sub.unsubscribe();
     if (this.otpTimer) {
       clearInterval(this.otpTimer);
@@ -1166,12 +1172,14 @@ export class CheckoutComponent implements OnInit, OnDestroy {
     this.openAddrDropdown = null;
   }
 
-  @HostListener('document:click')
-  onDocumentClickCloseDropdown(): void {
-    if (this.openAddrDropdown) {
+  private handleAddrDropdownCapture = (event: Event): void => {
+    if (!this.openAddrDropdown) return;
+    const target = event.target as HTMLElement | null;
+    if (!target || !target.closest('.addr-custom-select')) {
       this.openAddrDropdown = null;
+      this.cdr.markForCheck();
     }
-  }
+  };
 
   /** Tự động tải tất cả địa chỉ gắn với SĐT của tài khoản đã đăng nhập */
   loadAddressesForUserPhone() {

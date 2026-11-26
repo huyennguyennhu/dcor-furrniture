@@ -30,14 +30,42 @@
     <div class="addr-select-options"
       [class.always-scroll]="filteredOptions.length > 5"
       (scroll)="onListScroll($event)">
-      <div *ngFor="let opt of visibleOptions"
-        class="addr-select-option"
-        [class.selected]="opt.value === value"
-        [class.disabled]="opt.disabled"
-        (click)="selectOption(opt, $event)">
-        <span>{{ opt.label }}</span>
-        <lucide-angular *ngIf="opt.value === value" [img]="icons.Check" size="14"></lucide-angular>
-      </div>
+      <ng-container *ngFor="let opt of visibleOptions">
+        <div class="addr-select-option"
+          [class.selected]="opt.value === value"
+          [class.disabled]="opt.disabled"
+          (click)="selectOption(opt, $event)">
+          <span class="addr-option-main">
+            <img *ngIf="opt.image" [src]="opt.image" [alt]="opt.label" class="addr-option-thumb" />
+            <span class="addr-option-label" [class.has-children]="opt.children && opt.children.length > 0">{{ opt.label }}</span>
+          </span>
+          <span class="addr-option-actions">
+            <lucide-angular *ngIf="opt.value === value" [img]="icons.Check" size="14"></lucide-angular>
+            <button *ngIf="opt.children && opt.children.length > 0"
+              type="button"
+              class="addr-expand-btn"
+              [class.expanded]="isParentExpanded(opt)"
+              (click)="toggleExpand(opt, $event)"
+              title="Xem danh mục con">
+              <lucide-angular [img]="icons.ChevronRight" size="15"></lucide-angular>
+            </button>
+          </span>
+        </div>
+
+        <ng-container *ngIf="opt.children && opt.children.length > 0 && isParentExpanded(opt)">
+          <div *ngFor="let child of opt.children"
+            class="addr-select-option addr-child-option"
+            [class.selected]="child.value === value"
+            [class.disabled]="child.disabled"
+            (click)="selectOption(child, $event)">
+            <span class="addr-option-main">
+              <span class="addr-child-dot"></span>
+              <span class="addr-option-label">{{ child.label }}</span>
+            </span>
+            <lucide-angular *ngIf="child.value === value" [img]="icons.Check" size="14"></lucide-angular>
+          </div>
+        </ng-container>
+      </ng-container>
 
       <div *ngIf="filteredOptions.length === 0" class="addr-select-empty">
         {{ emptyText }}

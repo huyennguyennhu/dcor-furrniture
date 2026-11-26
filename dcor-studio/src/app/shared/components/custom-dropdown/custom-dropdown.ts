@@ -2,20 +2,23 @@ import {
   Component,
   ElementRef,
   EventEmitter,
-  HostListener,
   Input,
   Output,
+  OnInit,
+  OnDestroy,
   forwardRef,
   ChangeDetectorRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { LucideAngularModule, ChevronDown, Search, Check } from 'lucide-angular';
+import { LucideAngularModule, ChevronDown, ChevronRight, Search, Check } from 'lucide-angular';
 
 export interface DropdownOption {
   value: any;
   label: string;
   disabled?: boolean;
+  image?: string;
+  children?: DropdownOption[];
 }
 
 @Component({
@@ -32,8 +35,8 @@ export interface DropdownOption {
     }
   ]
 })
-export class CustomDropdownComponent implements ControlValueAccessor {
-  readonly icons = { ChevronDown, Search, Check };
+export class CustomDropdownComponent implements ControlValueAccessor, OnInit, OnDestroy {
+  readonly icons = { ChevronDown, ChevronRight, Search, Check };
 
   @Input() options: Array<string | DropdownOption> = [];
   @Input() placeholder = '-- Chọn --';
@@ -53,6 +56,7 @@ export class CustomDropdownComponent implements ControlValueAccessor {
   dropUp = false;
   searchQuery = '';
   displayLimit = 20;
+  expandedParents = new Set<any>();
 
   private onChange: (val: any) => void = () => {};
   private onTouched: () => void = () => {};
@@ -73,7 +77,22 @@ export class CustomDropdownComponent implements ControlValueAccessor {
     if (!this.searchable) return list;
     const q = (this.searchQuery || '').trim().toLowerCase();
     if (!q) return list;
-    return list.filter(o => (o.label || '').toLowerCase().includes(q));
+    const result: DropdownOption[] = [];
+    for (const o of list) {
+      const parentMatch = (o.label || '').toLowerCase().includes(q);
+      if (o.children && o.children.length > 0) {
+        const matchingChildren = o.children.filter(c => (c.label || '').toLowerCase().includes(q));
+        if (parentMatch || matchingChildren.length > 0) {
+          result.push({
+            ...o,
+            children: parentMatch ? o.children : matchingChildren
+          });
+        }
+      } else if (parentMatch) {
+        result.push(o);
+      }
+    }
+    return result;
   }
 
   get visibleOptions(): DropdownOption[] {
@@ -85,8 +104,31 @@ export class CustomDropdownComponent implements ControlValueAccessor {
   }
 
   get selectedLabel(): string {
-    const match = this.normalizedOptions.find(o => o.value === this.value);
-    return match ? match.label : '';
+    for (const o of this.normalizedOptions) {
+      if (o.value === this.value) return o.label;
+      if (o.children) {
+        const child = o.children.find(c => c.value === this.value);
+        if (child) return `${o.label} > ${child.label}`;
+      }
+    }
+    return '';
+  }
+
+  isParentExpanded(opt: DropdownOption): boolean {
+    if (this.searchable && (this.searchQuery || '').trim()) {
+      return !!(opt.children && opt.children.length > 0);
+    }
+    return this.expandedParents.has(opt.value);
+  }
+
+  toggleExpand(opt: DropdownOption, event: Event): void {
+    event.stopPropagation();
+    if (this.expandedParents.has(opt.value)) {
+      this.expandedParents.delete(opt.value);
+    } else {
+      this.expandedParents.add(opt.value);
+    }
+    this.cdr.markForCheck();
   }
 
   toggle(event: Event, triggerEl: HTMLElement): void {
@@ -141,12 +183,23 @@ export class CustomDropdownComponent implements ControlValueAccessor {
     this.displayLimit += this.pageSize;
   }
 
-  @HostListener('document:click', ['$event'])
-  onDocumentClick(event: Event): void {
+  private handleDocumentClickCapture = (event: Event): void => {
     if (this.isOpen && !this.elRef.nativeElement.contains(event.target as Node)) {
       this.isOpen = false;
       this.onTouched();
       this.cdr.markForCheck();
+    }
+  };
+
+  ngOnInit(): void {
+    if (typeof document !== 'undefined') {
+      document.addEventListener('click', this.handleDocumentClickCapture, true);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('click', this.handleDocumentClickCapture, true);
     }
   }
 
