@@ -58,6 +58,9 @@ export class OrderDetailComponent implements OnInit, OnDestroy {
   // Live GPS Map Tracking States
   isGpsRefreshing = false;
   lastGpsUpdate = '16:48:20 (Hôm nay)';
+
+  // Trạng thái thu gọn/mở rộng Lịch sử Tác nghiệp & Dòng thời gian (Default là thu gọn)
+  isTimelineExpanded: boolean = false;
   copiedTracking = false;
 
   refreshGpsLocation(): void {

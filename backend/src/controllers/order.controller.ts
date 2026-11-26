@@ -1029,29 +1029,66 @@ export const orderController = {
         return;
       }
 
-      const updated = await prisma.order.update({
-        where: { orderNumber },
-        data: {
-          status: 'RETURNED'
-        }
-      });
-
+      // Ghi lịch sử đơn hàng gốc mà TUYỆT ĐỐI KHÔNG ÉP order.status = 'RETURNED'
       await prisma.orderStatusHistory.create({
         data: {
           orderId: order.id,
-          status: 'RETURNED',
+          status: order.status,
           fromStatus: order.status,
           actorType: 'CUSTOMER',
           notes: `[Yêu cầu đổi trả] Lý do: ${reason}. Chi tiết: ${description || 'Không có mô tả'}. Ảnh đính kèm: ${(images || []).join(', ')}`
         }
       });
 
-      // Đồng bộ vào inMemoryReturns với trạng thái mặc định PENDING ("Chờ duyệt")
+      // Đồng bộ vào PostgreSQL OrderReturn và inMemoryReturns
       const firstItem = order.items?.[0];
-      const returnId = `RET-${order.orderNumber.replace('ORD-', '')}`;
+      const returnId = `ret_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const returnCode = `RMA-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${order.orderNumber.replace(/[^0-9]/g, '').slice(-4) || '0001'}`;
+
+      try {
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO "OrderReturn" (
+            "id", "returnCode", "orderId", "orderNumber", "customerId", "customerName", "customerPhone",
+            "customerEmail", "customerAddress", "returnType", "status", "reason", "detailedReason",
+            "proofImages", "refundAmount", "createdAt", "updatedAt"
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'EXCHANGE', 'PENDING', $10, $11, $12::jsonb, 0, NOW(), NOW())
+          ON CONFLICT ("returnCode") DO UPDATE SET "reason" = EXCLUDED."reason", "proofImages" = EXCLUDED."proofImages", "updatedAt" = NOW();
+        `,
+          returnId, returnCode, order.id, order.orderNumber, order.customerId || null,
+          (order as any).receiverName || 'Khách hàng',
+          order.phone || (order as any).receiverPhone || '',
+          order.email || null, (order as any).detailAddress || null,
+          reason || 'Sản phẩm lỗi kỹ thuật do nhà sản xuất', description || '',
+          JSON.stringify(Array.isArray(images) ? images : [])
+        );
+
+        if (firstItem) {
+          await prisma.$executeRawUnsafe(`
+            INSERT INTO "OrderReturnItem" (
+              "id", "returnId", "orderItemId", "productId", "productName", "productSku",
+              "variantName", "quantity", "unitPrice", "totalPrice", "productImage", "createdAt"
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW());
+          `,
+            `item_${Date.now()}`, returnId, firstItem.id, firstItem.productId || null,
+            firstItem.productName, firstItem.sku || null, firstItem.variantDescription || null,
+            firstItem.quantity || 1, Number(firstItem.price || 0), Number(firstItem.lineTotal || firstItem.price || 0),
+            firstItem.imageUrl || null
+          );
+        }
+
+        await prisma.$executeRawUnsafe(`
+          INSERT INTO "OrderReturnTimeline" ("id", "returnId", "status", "title", "description", "performedBy", "actorType", "createdAt")
+          VALUES ($1, $2, 'PENDING', 'Khách hàng gửi yêu cầu đổi trả', $3, $4, 'CUSTOMER', NOW());
+        `, `tl_${Date.now()}`, returnId, `Lý do: ${reason}. Chi tiết: ${description || 'Không có'}`, (order as any).receiverName || 'Khách hàng');
+      } catch (dbErr) {
+        console.warn('Lỗi lưu OrderReturn vào DB (sẽ dùng inMemory):', dbErr);
+      }
+
+      // Đồng bộ vào inMemoryReturns với trạng thái mặc định PENDING ("Chờ duyệt")
+      const memReturnId = `RET-${order.orderNumber.replace('ORD-', '')}`;
       const existingIdx = inMemoryReturns.findIndex(r => r.orderNumber === orderNumber);
       const newReturnObj = {
-        id: returnId,
+        id: memReturnId,
         customerId: order.customerId || 'guest',
         orderNumber: order.orderNumber,
         productName: firstItem ? firstItem.productName : 'Sản phẩm nội thất',

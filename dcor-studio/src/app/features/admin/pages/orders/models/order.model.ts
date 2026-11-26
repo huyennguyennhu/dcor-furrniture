@@ -144,6 +144,10 @@ export interface Order {
   isHighValue: boolean;
   isCustomDesign: boolean;
   isGift: boolean;
+  source?: string;
+  workOrderCode?: string;
+  customRequestId?: string;
+  depositAmount?: number;
   customerNote?: string;
   internalNotes?: string;
   cancelReason?: string;

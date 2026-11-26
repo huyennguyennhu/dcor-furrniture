@@ -91,16 +91,45 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
   reviewModalOrderNumber = '';
   reviewModalItems: ReviewModalItem[] = [];
 
-  // Modal Yêu cầu đổi trả
+  // Modal Yêu cầu đổi trả (Hỗ trợ chọn 1 hoặc nhiều sản phẩm)
   isReturnModalOpen = false;
   isSelectReturnItemModalOpen = false;
-  selectedReturnItem: any = null;
-  selectedReturnQuantity = 1;
   targetOrderForReturn: OrderSummary | OrderDetail | null = null;
-  returnReason = 'Sản phẩm lỗi kỹ thuật do nhà sản xuất';
-  returnDescription = '';
-  returnImagesInput = '';
-  returnUploadedImages: string[] = [];
+  returnSelectableItemsList: Array<{
+    orderItemId: string;
+    productId?: string;
+    productName: string;
+    productSku?: string;
+    variantDescription?: string;
+    imageUrl?: string;
+    unitPrice: number;
+    maxQuantity: number;
+    selected: boolean;
+    quantity: number;
+  }> = [];
+
+  returnSubFormsList: Array<{
+    orderItemId: string;
+    productId?: string;
+    productName: string;
+    productSku?: string;
+    variantDescription?: string;
+    imageUrl?: string;
+    unitPrice: number;
+    quantity: number;
+    returnType: 'EXCHANGE' | 'REFUND';
+    reason: string;
+    description: string;
+    proofImages: string[];
+    isUploading?: boolean;
+  }> = [];
+
+  refundBankInfo = {
+    bankName: '',
+    accountNumber: '',
+    accountHolder: ''
+  };
+  isSubmittingReturns = false;
 
   returnReasonOptions = [
     'Sản phẩm lỗi kỹ thuật do nhà sản xuất',
@@ -1406,111 +1435,169 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Yêu cầu đổi trả
-  get returnSelectableItems(): any[] {
-    const items = this.targetOrderForReturn?.items;
-    return Array.isArray(items) ? items : [];
+  // =========================================================================
+  // TIẾN TRÌNH ĐỔI TRẢ HÀNG (ORDER RETURNS - MULTI-ITEM SUPPORT)
+  // =========================================================================
+  get selectedReturnItemsCount(): number {
+    return this.returnSelectableItemsList.filter(it => it.selected).length;
+  }
+
+  get isAllReturnItemsSelected(): boolean {
+    return this.returnSelectableItemsList.length > 0 && this.returnSelectableItemsList.every(it => it.selected);
+  }
+
+  toggleSelectAllReturnItems(): void {
+    const nextState = !this.isAllReturnItemsSelected;
+    this.returnSelectableItemsList.forEach(it => (it.selected = nextState));
+    this.cdr.markForCheck();
+  }
+
+  toggleReturnItemSelection(item: any): void {
+    item.selected = !item.selected;
+    this.cdr.markForCheck();
+  }
+
+  decreaseItemReturnQty(item: any): void {
+    if (item.quantity > 1) {
+      item.quantity--;
+      this.cdr.markForCheck();
+    }
+  }
+
+  increaseItemReturnQty(item: any): void {
+    if (item.quantity < item.maxQuantity) {
+      item.quantity++;
+      this.cdr.markForCheck();
+    }
   }
 
   openReturnModal(order: OrderSummary | OrderDetail, event?: Event): void {
     if (event) event.stopPropagation();
+    this.targetOrderForReturn = order;
     const items = Array.isArray(order.items) ? order.items : [];
-    if (items.length > 1) {
-      // Đơn có > 1 sản phẩm: mở Popup chọn sản phẩm trước
-      this.targetOrderForReturn = order;
-      this.selectedReturnItem = null;
-      this.selectedReturnQuantity = 1;
-      this.isSelectReturnItemModalOpen = true;
-      this.cdr.markForCheck();
-      return;
-    }
 
-    // Đơn chỉ có 1 sản phẩm: bỏ qua popup, vào thẳng form đổi trả
-    this.selectedReturnItem = items[0] || null;
-    this.selectedReturnQuantity = 1;
-    this.proceedToReturnForm(order);
-  }
+    this.returnSelectableItemsList = items.map((it: any) => ({
+      orderItemId: String(it.id || it.orderItemId || it.productId || Math.random()),
+      productId: it.productId,
+      productName: it.productName || 'Sản phẩm nội thất DCor',
+      productSku: it.productSku || it.sku || '',
+      variantDescription: it.variantDescription || it.variantName || it.color || '',
+      imageUrl: it.imageUrl || it.productImage || '/assets/img/furniture-placeholder.svg',
+      unitPrice: Number(it.price || it.unitPrice || 0),
+      maxQuantity: Math.max(1, Number(it.quantity || 1)),
+      selected: true,
+      quantity: 1
+    }));
 
-  selectItemForReturn(item: any): void {
-    this.selectedReturnItem = item;
-    this.selectedReturnQuantity = 1;
+    // Luôn mở Popup chọn 1 hoặc nhiều sản phẩm & số lượng để khách hàng chủ động chọn đúng món và số lượng cần đổi trả
+    this.isSelectReturnItemModalOpen = true;
+    this.isReturnModalOpen = false;
     this.cdr.markForCheck();
   }
 
-  decreaseReturnQty(): void {
-    if (this.selectedReturnQuantity > 1) {
-      this.selectedReturnQuantity--;
-      this.cdr.markForCheck();
-    }
-  }
-
-  increaseReturnQty(): void {
-    const maxQty = this.selectedReturnItem?.quantity || 1;
-    if (this.selectedReturnQuantity < maxQty) {
-      this.selectedReturnQuantity++;
-      this.cdr.markForCheck();
-    }
-  }
-
   confirmReturnItemSelection(): void {
-    if (!this.selectedReturnItem || !this.targetOrderForReturn) return;
-    this.isSelectReturnItemModalOpen = false;
-    this.proceedToReturnForm(this.targetOrderForReturn);
-  }
+    const selected = this.returnSelectableItemsList.filter(it => it.selected && it.quantity > 0);
+    if (selected.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 sản phẩm cần đổi trả.');
+      return;
+    }
 
-  private proceedToReturnForm(order: OrderSummary | OrderDetail): void {
-    this.targetOrderForReturn = order;
-    this.returnReason = this.returnReasonOptions[0];
-    this.returnDescription = '';
-    this.returnImagesInput = '';
-    this.returnUploadedImages = [];
+    this.returnSubFormsList = selected.map(it => ({
+      orderItemId: it.orderItemId,
+      productId: it.productId,
+      productName: it.productName,
+      productSku: it.productSku,
+      variantDescription: it.variantDescription,
+      imageUrl: it.imageUrl,
+      unitPrice: it.unitPrice,
+      quantity: it.quantity,
+      returnType: 'EXCHANGE' as const,
+      reason: this.returnReasonOptions[0],
+      description: '',
+      proofImages: [],
+      isUploading: false
+    }));
+
+    this.refundBankInfo = {
+      bankName: '',
+      accountNumber: '',
+      accountHolder: ''
+    };
+
+    this.isSelectReturnItemModalOpen = false;
     this.isReturnModalOpen = true;
     this.cdr.markForCheck();
   }
 
-  async onReturnImagePicked(event: Event): Promise<void> {
+  backToSelectItemsModal(): void {
+    if (this.returnSelectableItemsList.length > 1) {
+      this.isReturnModalOpen = false;
+      this.isSelectReturnItemModalOpen = true;
+      this.cdr.markForCheck();
+    } else {
+      this.isReturnModalOpen = false;
+    }
+  }
+
+  hasRefundSubForm(): boolean {
+    return this.returnSubFormsList.some(f => f.returnType === 'REFUND');
+  }
+
+  async onSubFormImagePicked(subForm: any, event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
     const files = Array.from(input.files);
     input.value = '';
+    subForm.isUploading = true;
+    this.cdr.markForCheck();
 
     for (const file of files) {
-      if (this.returnUploadedImages.length >= 5) break;
+      if (subForm.proofImages.length >= 5) break;
       if (file.size > 10 * 1024 * 1024) {
-        alert(`Ảnh ${file.name} vượt quá dung lượng cho phép 10MB.`);
+        alert(`Ảnh ${file.name} vượt quá dung lượng 10MB.`);
         continue;
       }
+
       try {
         const compressedBlob = await this.compressReturnImageToBlob(file, 1280, 0.82);
         const formData = new FormData();
-        formData.append('file', compressedBlob, file.name.replace(/\.[^.]+$/, '.jpg'));
+        formData.append('file', compressedBlob, file.name.replace(/\.[^.]+$/, '.webp'));
+
         const res = await fetch(`${environment.apiUrl}/upload/image`, {
           method: 'POST',
           body: formData
         });
         if (res.ok) {
           const data = await res.json();
-          if (data?.url && this.returnUploadedImages.length < 5) {
-            this.returnUploadedImages.push(data.url);
+          if (data?.url && subForm.proofImages.length < 5) {
+            subForm.proofImages.push(data.url);
             this.cdr.markForCheck();
             continue;
           }
         }
       } catch (err) {
-        console.warn('Lỗi nén/upload ảnh đổi trả:', err);
+        console.warn('Lỗi nén/upload ảnh lên Cloudinary:', err);
       }
 
-      // Fallback nếu mất kết nối
+      // Fallback nếu không có internet hoặc api upload lỗi
       const reader = new FileReader();
       reader.onload = (e: any) => {
-        if (e.target?.result && this.returnUploadedImages.length < 5) {
-          this.returnUploadedImages.push(e.target.result as string);
+        if (e.target?.result && subForm.proofImages.length < 5) {
+          subForm.proofImages.push(e.target.result as string);
           this.cdr.markForCheck();
         }
       };
       reader.readAsDataURL(file);
     }
+
+    subForm.isUploading = false;
+    this.cdr.markForCheck();
+  }
+
+  removeSubFormImage(subForm: any, idx: number): void {
+    subForm.proofImages.splice(idx, 1);
+    this.cdr.markForCheck();
   }
 
   private compressReturnImageToBlob(file: File, maxDim = 1280, quality = 0.82): Promise<Blob> {
@@ -1538,7 +1625,7 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
           return;
         }
         ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => resolve(blob || file), 'image/jpeg', quality);
+        canvas.toBlob((blob) => resolve(blob || file), 'image/webp', quality);
       };
       img.onerror = (err) => {
         URL.revokeObjectURL(objectUrl);
@@ -1548,36 +1635,87 @@ export class MyOrdersComponent implements OnInit, OnDestroy {
     });
   }
 
-  removeReturnImage(index: number): void {
-    this.returnUploadedImages.splice(index, 1);
-    this.cdr.markForCheck();
-  }
+  async submitBulkReturnRequests(): Promise<void> {
+    if (!this.targetOrderForReturn || this.returnSubFormsList.length === 0) return;
 
-  submitReturnRequest(): void {
-    if (!this.targetOrderForReturn) return;
-    const images = this.returnUploadedImages.length > 0 
-      ? this.returnUploadedImages 
-      : (this.returnImagesInput ? this.returnImagesInput.split(',').map(s => s.trim()).filter(Boolean) : []);
-
-    this.orderService.requestReturn(this.targetOrderForReturn.orderNumber, {
-      reason: this.returnReason,
-      description: this.returnDescription,
-      images
-    }).subscribe({
-      next: () => {
-        this.isReturnModalOpen = false;
-        this.showToast('Đã gửi yêu cầu đổi trả thành công! Đơn hàng hiện đang ở tab "Chờ duyệt" của mục Yêu cầu đổi trả.', 'success');
-        this.loadOrders();
-        setTimeout(() => {
-          this.router.navigate(['/account/returns'], { queryParams: { tab: 'PENDING' } });
-        }, 1200);
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        alert(err.error?.message || 'Không thể tạo yêu cầu đổi trả.');
-        this.cdr.markForCheck();
+    for (const form of this.returnSubFormsList) {
+      if (!form.reason) {
+        alert(`Vui lòng chọn lý do đổi trả cho sản phẩm "${form.productName}".`);
+        return;
       }
-    });
+      if (!form.proofImages || form.proofImages.length === 0) {
+        alert(`Vui lòng tải lên ít nhất 1 ảnh minh chứng lỗi cho "${form.productName}".`);
+        return;
+      }
+    }
+
+    if (this.hasRefundSubForm()) {
+      if (!this.refundBankInfo.bankName.trim() || !this.refundBankInfo.accountNumber.trim() || !this.refundBankInfo.accountHolder.trim()) {
+        alert('Vui lòng điền đầy đủ thông tin tài khoản ngân hàng để DCor hoàn tiền.');
+        return;
+      }
+    }
+
+    this.isSubmittingReturns = true;
+    this.cdr.markForCheck();
+
+    const payload = {
+      orderNumber: this.targetOrderForReturn.orderNumber,
+      items: this.returnSubFormsList.map(f => ({
+        orderItemId: f.orderItemId,
+        productId: f.productId,
+        productName: f.productName,
+        productSku: f.productSku,
+        variantName: f.variantDescription,
+        productImage: f.imageUrl,
+        unitPrice: f.unitPrice,
+        quantity: f.quantity,
+        returnType: f.returnType,
+        reason: f.reason,
+        description: f.description,
+        proofImages: f.proofImages
+      })),
+      bankAccount: this.hasRefundSubForm() ? this.refundBankInfo : undefined
+    };
+
+    try {
+      const token = localStorage.getItem('dcor_auth_token') || sessionStorage.getItem('dcor_auth_token') || '';
+      const guestPhone = localStorage.getItem('dcor_guest_phone') || sessionStorage.getItem('dcor_guest_phone') || '';
+      const headers: any = {
+        'Content-Type': 'application/json'
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (guestPhone) headers['x-guest-phone'] = guestPhone;
+
+      const res = await fetch(`${environment.apiUrl}/returns/bulk-request`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      this.isSubmittingReturns = false;
+
+      if (!res.ok) {
+        alert(data.message || 'Không thể tạo yêu cầu đổi trả.');
+        this.cdr.markForCheck();
+        return;
+      }
+
+      this.isReturnModalOpen = false;
+      const count = data.createdReturns?.length || this.returnSubFormsList.length;
+      this.showToast(`Đã gửi thành công ${count} yêu cầu đổi trả! Các yêu cầu đang ở tab "Chờ duyệt".`, 'success');
+      this.loadOrders();
+
+      setTimeout(() => {
+        this.router.navigate(['/account/returns'], { queryParams: { tab: 'PENDING' } });
+      }, 1000);
+      this.cdr.markForCheck();
+    } catch (err: any) {
+      this.isSubmittingReturns = false;
+      alert('Lỗi kết nối máy chủ khi gửi yêu cầu đổi trả: ' + (err.message || err));
+      this.cdr.markForCheck();
+    }
   }
 
   // Format Helpers

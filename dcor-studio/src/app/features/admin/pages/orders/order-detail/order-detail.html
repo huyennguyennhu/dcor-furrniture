@@ -590,15 +590,25 @@
       
       <!-- CARD 5: Nhật ký thao tác & Audit Trail -->
       <div class="v2-card">
-        <div class="v2-card-header">
+        <div class="v2-card-header"
+             (click)="isTimelineExpanded = !isTimelineExpanded"
+             role="button"
+             tabindex="0"
+             style="cursor: pointer; user-select: none;">
           <div class="card-title-group">
             <lucide-angular [img]="icons.Clock" size="18" class="text-accent"></lucide-angular>
-            <h3>Lịch sử thao tác</h3>
+            <h3>Lịch sử Tác nghiệp & Dòng thời gian</h3>
           </div>
-          <span class="sub-label">{{ order.auditLogs.length }} bản ghi</span>
+          <div class="card-header-actions" style="display: flex; align-items: center; gap: 8px;">
+            <span class="sub-label">{{ order.auditLogs.length }} bản ghi</span>
+            <lucide-angular [img]="icons.ChevronDown" size="18" class="card-toggle-icon"
+              [style.transform]="isTimelineExpanded ? 'rotate(0deg)' : 'rotate(-90deg)'"
+              [style.transition]="'transform 0.2s ease'">
+            </lucide-angular>
+          </div>
         </div>
 
-        <div class="audit-timeline">
+        <div class="audit-timeline" *ngIf="isTimelineExpanded">
           <div class="audit-entry" *ngFor="let log of order.auditLogs">
             <div class="audit-dot"></div>
             <div class="audit-body">

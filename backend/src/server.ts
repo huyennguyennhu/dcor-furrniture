@@ -51,6 +51,8 @@ import reviewRoutes from './routes/review.routes';
 import { initReviewDatabase } from './lib/init-review-db';
 import customRequestRoutes from './routes/custom-request.routes';
 import { initCustomRequestDatabase } from './lib/init-custom-requests-db';
+import orderReturnRoutes from './routes/order-return.routes';
+import { initOrderReturnDatabase } from './lib/init-order-returns-db';
 import { publicApiRateLimiter } from './middleware/rate-limit.middleware';
 
 
@@ -151,6 +153,11 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/store/custom-requests', customRequestRoutes);
 app.use('/api/admin/custom-requests', customRequestRoutes);
 app.use('/api/custom-requests', customRequestRoutes);
+
+// Gắn router đổi trả hàng Order Returns (Storefront & Admin)
+app.use('/api/returns', orderReturnRoutes);
+app.use('/api/store/returns', orderReturnRoutes);
+app.use('/api/admin/returns', orderReturnRoutes);
 
 // API danh mục sản phẩm từ database thực
 app.get('/api/categories', publicApiRateLimiter, async (req, res) => {
@@ -1070,6 +1077,7 @@ server.listen(port, () => {
   // Quét tự động ngay khi server khởi động
   autoCancelExpiredOrders().catch(e => console.warn('Init autoCancelExpiredOrders error:', e));
   autoCompleteExpiredDeliveredOrders().catch(e => console.warn('Init autoCompleteExpiredDeliveredOrders error:', e));
+  initOrderReturnDatabase().catch(e => console.warn('Init initOrderReturnDatabase error:', e));
 
   // Tiến trình định kỳ quét hủy đơn quá hạn và hoàn tất đơn đã giao chạy an toàn trong worker 5 phút
   // tại order.controller.ts (có cờ khóa luồng isOrderCleanupInProgress chống tranh chấp connection pool).
@@ -1093,7 +1101,8 @@ server.listen(port, () => {
         await initChatDatabase();
         await initBlogDatabase();
         await initReviewDatabase();
-      await initCustomRequestDatabase();
+        await initCustomRequestDatabase();
+        await initOrderReturnDatabase();
         console.log('[DB-Init] Khởi tạo các bảng và ảnh Blog thành công.');
       } catch (err) {
         console.error('[DB-Init] Lỗi khởi tạo bảng:', err);

@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { environment } from '../../../../../../../environments/environment';
 
 export type ReturnStatus = 
   | 'PENDING' 
@@ -523,6 +524,109 @@ export class OrdersReturnsMockService {
   private readonly STORAGE_KEY = 'dcor_returns_mock_data_v2';
   private returns: ReturnRequest[] = this.loadInitialData();
 
+  constructor() {
+    this.fetchFromBackend();
+  }
+
+  async fetchFromBackend(): Promise<void> {
+    try {
+      const res = await fetch(`${environment.apiUrl}/returns/admin/all`);
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          for (const row of rows) {
+            const existingIdx = this.returns.findIndex(r => r.id === row.id || r.id === row.returnCode);
+            const item = (row.items && row.items.length > 0) ? row.items[0] : null;
+            let parsedImages: string[] = [];
+            if (Array.isArray(row.proofImages)) parsedImages = row.proofImages;
+            else if (typeof row.proofImages === 'string') {
+              try { parsedImages = JSON.parse(row.proofImages); } catch (_) { parsedImages = [row.proofImages]; }
+            }
+
+            const mapped: ReturnRequest = {
+              id: row.returnCode || row.id,
+              orderNumber: row.orderNumber,
+              orderId: row.orderId || row.orderNumber,
+              createdAt: row.createdAt ? new Date(row.createdAt).toLocaleString('vi-VN') : '',
+              customer: {
+                name: row.customerName || 'Khách hàng',
+                phone: row.customerPhone || '',
+                email: row.customerEmail || '',
+                address: row.shippingAddress || ''
+              },
+              item: {
+                name: item?.productName || 'Sản phẩm đổi trả',
+                sku: item?.productSku || '',
+                variant: item?.variantName || '',
+                quantity: item?.quantity || 1,
+                price: Number(item?.unitPrice || 0),
+                imageUrl: item?.productImage || ''
+              },
+              type: row.returnType === 'EXCHANGE' ? 'EXCHANGE' : 'REFUND',
+              reason: row.reason || '',
+              customerNote: row.detailedReason || '',
+              proofImages: parsedImages,
+              status: row.status as ReturnStatus,
+              stage: (row.status === 'PENDING' || row.status === 'APPROVED' ? 1 : (row.status === 'RETURNING' ? 2 : (row.status === 'RECEIVED' ? 3 : 4))),
+              assignee: 'CSKH DCOR',
+              timeline: (row.timelines || []).map((t: any) => ({
+                time: new Date(t.createdAt).toLocaleString('vi-VN'),
+                status: t.status,
+                actor: t.performedBy || 'Hệ thống',
+                desc: t.description || t.title
+              }))
+            };
+
+            if (existingIdx >= 0) {
+              this.returns[existingIdx] = mapped;
+            } else {
+              this.returns.unshift(mapped);
+            }
+          }
+          this.saveToStorage();
+        }
+      }
+    } catch (e) {
+      console.warn('Không thể đồng bộ đổi trả từ Backend:', e);
+    }
+  }
+
+  private async syncStatusToBackend(returnId: string, status: string, actor: string, notes?: string): Promise<void> {
+    try {
+      let endpoint = '';
+      let method = 'PUT';
+      let body: any = { notes, actor };
+
+      if (status === 'APPROVED') {
+        endpoint = `/returns/admin/${returnId}/approve`;
+      } else if (status === 'REJECTED') {
+        endpoint = `/returns/admin/${returnId}/reject`;
+        body.reason = notes;
+      } else if (status === 'RECEIVED') {
+        endpoint = `/returns/admin/${returnId}/qc-inspection`;
+        body.qcPassed = true;
+      } else if (status === 'EXCHANGING') {
+        endpoint = `/returns/admin/${returnId}/execute-exchange`;
+        method = 'POST';
+      } else if (status === 'REFUNDING') {
+        endpoint = `/returns/admin/${returnId}/execute-refund`;
+        method = 'POST';
+      } else if (status === 'COMPLETED') {
+        endpoint = `/returns/admin/${returnId}/complete`;
+      }
+
+      if (endpoint) {
+        await fetch(`${environment.apiUrl}${endpoint}`, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+      }
+    } catch (err) {
+      console.warn('Lỗi syncStatusToBackend:', err);
+    }
+  }
+
   private loadInitialData(): ReturnRequest[] {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
@@ -830,7 +934,11 @@ export class OrdersReturnsMockService {
       desc
     });
 
-    // Đồng bộ ngược lại trạng thái đơn hàng gốc trong kho đơn hàng
+    // Đồng bộ sang Backend API
+    this.syncStatusToBackend(item.id, newStatus, actor, desc);
+
+    // Đồng bộ thông tin đổi trả vào đơn hàng gốc
+    // BẢO TOÀN TRẠNG THÁI GỐC (COMPLETED / DELIVERED), TUYỆT ĐỐI KHÔNG GHI ĐÈ BẰNG RETURNED
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         const ordersRaw = localStorage.getItem('dcor_orders_v2_store');
@@ -838,16 +946,11 @@ export class OrdersReturnsMockService {
           const ordersList: any[] = JSON.parse(ordersRaw);
           const target = ordersList.find(o => o.orderNumber === item.orderNumber || o.id === item.orderId);
           if (target) {
-            if (newStatus === 'APPROVED' || newStatus === 'RETURNING') {
-              target.status = 'RETURNING';
-            } else if (newStatus === 'RECEIVED') {
-              target.status = 'RETURNED';
-            } else if (newStatus === 'REJECTED') {
-              target.status = 'COMPLETED';
-              if (!target.returnInfo) target.returnInfo = {};
+            if (!target.returnInfo) target.returnInfo = {};
+            target.returnInfo.latestStatus = newStatus;
+            target.returnInfo.latestNote = desc;
+            if (newStatus === 'REJECTED') {
               target.returnInfo.rejectionReason = desc;
-            } else if (newStatus === 'COMPLETED') {
-              target.status = 'COMPLETED';
             }
             localStorage.setItem('dcor_orders_v2_store', JSON.stringify(ordersList));
           }

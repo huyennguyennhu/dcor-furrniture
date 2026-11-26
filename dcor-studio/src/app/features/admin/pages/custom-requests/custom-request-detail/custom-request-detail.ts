@@ -166,6 +166,13 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
   // Trạng thái mở/thu gọn thẻ Phiếu Yêu Cầu Custom (mở ở bước 1, thu gọn từ bước 2 trở đi)
   isCustomCardExpanded: boolean = true;
 
+  // Trạng thái mở/thu gọn Lịch sử Tác nghiệp & Dòng thời gian (Default là thu gọn theo yêu cầu)
+  isTimelineExpanded: boolean = false;
+
+  toggleTimelineCard(): void {
+    this.isTimelineExpanded = !this.isTimelineExpanded;
+  }
+
   toggleCustomCard(): void {
     if (!this.isCardCollapsible()) return;
     this.isCustomCardExpanded = !this.isCustomCardExpanded;
@@ -1154,6 +1161,112 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     attributes: [] as { label: string; value: string; hexColor?: string; image?: string }[]
   };
 
+  // --- MODAL THÔNG TIN ĐƠN HÀNG (BƯỚC 6 - LÊN ĐƠN HÀNG) ---
+  isCreateOrderModalOpen: boolean = false;
+  orderCreateForm = {
+    recipientName: '',
+    recipientPhone: '',
+    recipientEmail: '',
+    shippingAddress: '',
+    productName: '',
+    sku: '',
+    variantSpecs: '',
+    imageUrl: '',
+    quantity: 1,
+    unitPrice: 0,
+    totalAmount: 0,
+    depositPaid: 0,
+    remainingAmount: 0,
+    paymentMethod: 'BANK_TRANSFER' as 'BANK_TRANSFER' | 'COD' | 'VNPAY',
+    deliveryNotes: ''
+  };
+
+  openCreateOrderModal(): void {
+    if (!this.request) return;
+    const qty = this.request.customVariant?.stock || 1;
+    const price = this.request.customVariant?.price || this.request.quotedPrice || 35000000;
+    const total = qty * price;
+    const deposit = this.request.quotedDeposit || Math.round(total * 0.3);
+    const remaining = Math.max(0, total - deposit);
+    const specs = this.request.customVariant?.name || `${this.request.length || 0}x${this.request.width || 0}x${this.request.height || 0} cm | ${this.request.material || 'Da bò Ý'} | ${this.request.colorName || 'Màu chỉ định'}`;
+    const img = (this.request.customVariant?.images && this.request.customVariant.images[0]) || this.request.productImage || '/assets/img/furniture-placeholder.svg';
+
+    this.orderCreateForm = {
+      recipientName: this.request.customerName || '',
+      recipientPhone: this.request.customerPhone || '',
+      recipientEmail: this.request.customerEmail || '',
+      shippingAddress: this.request.customerAddress || 'Showroom DCOR Studio',
+      productName: this.request.customVariant?.name || `[May đo] ${this.request.productName}`,
+      sku: this.request.customVariant?.sku || `VAR-${this.request.code}`,
+      variantSpecs: specs,
+      imageUrl: img,
+      quantity: qty,
+      unitPrice: price,
+      totalAmount: total,
+      depositPaid: deposit,
+      remainingAmount: remaining,
+      paymentMethod: 'BANK_TRANSFER',
+      deliveryNotes: this.request.notes || 'Hàng may đo cao cấp xưởng DCOR, kiểm tra đóng gói cẩn thận.'
+    };
+    this.isCreateOrderModalOpen = true;
+  }
+
+  closeCreateOrderModal(): void {
+    this.isCreateOrderModalOpen = false;
+  }
+
+  recalculateOrderForm(): void {
+    const qty = Math.max(1, Number(this.orderCreateForm.quantity) || 1);
+    const price = Math.max(0, Number(this.orderCreateForm.unitPrice) || 0);
+    this.orderCreateForm.totalAmount = qty * price;
+    if (this.orderCreateForm.depositPaid > this.orderCreateForm.totalAmount) {
+      this.orderCreateForm.depositPaid = this.orderCreateForm.totalAmount;
+    }
+    this.orderCreateForm.remainingAmount = Math.max(0, this.orderCreateForm.totalAmount - (this.orderCreateForm.depositPaid || 0));
+  }
+
+  confirmCreateOrderFromModal(): void {
+    if (!this.request) return;
+    if (!this.orderCreateForm.recipientName || !this.orderCreateForm.recipientName.trim()) {
+      this.triggerToast('Thiếu thông tin người nhận', 'Vui lòng nhập họ tên người nhận hàng.', 'error');
+      return;
+    }
+    if (!this.orderCreateForm.recipientPhone || !this.orderCreateForm.recipientPhone.trim()) {
+      this.triggerToast('Thiếu số điện thoại', 'Vui lòng nhập số điện thoại người nhận.', 'error');
+      return;
+    }
+
+    const currentStaff = this.adminAuthService.currentUser?.fullName 
+      ? `KTS. ${this.adminAuthService.currentUser.fullName}` 
+      : (this.request.assignedStaff || 'Quản đốc xưởng DCOR');
+
+    // Tự động đảm bảo QC passed khi lên đơn hàng chính thức
+    this.customRequestService.passQcInspection(
+      this.request.id,
+      { dimensionAccuracy: true, surfaceFinish: true, cushionStitching: true, packagingProtection: true },
+      currentStaff,
+      'Đạt chuẩn nghiệm thu 4 tiêu chí xuất xưởng.'
+    );
+
+    // CHÍNH THỨC TẠO ĐƠN HÀNG VỚI DỮ LIỆU ĐÃ CHỈNH SỬA TỪ POPUP
+    const result = this.customRequestService.createOfficialOrderFromProduction(
+      this.request.id,
+      currentStaff,
+      this.orderCreateForm
+    );
+
+    if (result) {
+      this.closeCreateOrderModal();
+      this.loadRequest();
+      this.triggerToast(
+        'Lên Đơn hàng thành công!',
+        `Hệ thống đã chính thức tạo Đơn hàng #${result.generatedOrderNumber} trong tab Đơn hàng để điều phối giao hàng & thu 70% còn lại.`,
+        'success',
+        5000
+      );
+    }
+  }
+
   openCreateVariantModal(): void {
     if (!this.request) return;
 
@@ -1317,8 +1430,13 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const isEditMode = !!this.request.customVariant;
+    const existingVariantId = (this.request.customVariant as any)?.variantId || 
+      (this.request.customVariant?.id && !String(this.request.customVariant.id).startsWith('var_') ? this.request.customVariant.id : undefined);
+
     const variantData = {
-      id: this.request.customVariant?.id || `var_${Date.now()}`,
+      id: existingVariantId || this.request.customVariant?.id || `var_${Date.now()}`,
+      variantId: existingVariantId,
       name: this.variantForm.variantName.trim(),
       sku: this.variantForm.sku,
       price: this.variantForm.price,
@@ -1327,16 +1445,18 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
       isPrivate: true,
       images: [...this.variantForm.images],
       attributes: [...this.variantForm.attributes],
-      createdAt: this.request.customVariant?.createdAt || new Date().toISOString()
+      createdAt: this.request.customVariant?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
-    // 1. Lưu vào CustomRequestService
+    // 1. Lưu tạm thời vào CustomRequestService (cache local)
     this.customRequestService.saveCustomVariant(this.request.id, variantData);
     this.request.customVariant = variantData;
 
-    // 2. Gửi API lưu trực tiếp vào danh sách Biến thể của Sản phẩm trong Database
+    // 2. Gửi API lưu hoặc cập nhật trực tiếp vào danh sách Biến thể của Sản phẩm trong Database
     const targetProductId = this.request.productId || 'default';
     const payload = {
+      variantId: existingVariantId,
       productId: this.request.productId,
       productName: this.request.productName,
       productSku: this.request.productSku,
@@ -1353,21 +1473,44 @@ export class AdminCustomRequestDetailComponent implements OnInit, OnDestroy {
     this.http.post<any>(`${environment.apiUrl}/admin/products/${targetProductId}/variants`, payload).subscribe({
       next: (res) => {
         console.log('[saveProductVariant] Đã đồng bộ biến thể vào sản phẩm DB:', res);
-        if (res.product && res.product.id && res.product.id !== this.request!.productId) {
-          this.request!.productId = res.product.id;
-          this.customRequestService.saveCustomVariant(this.request!.id, { ...variantData, productId: res.product.id });
+        const savedId = res.variant?.id || existingVariantId || variantData.id;
+        const savedSku = res.variant?.sku || variantData.sku;
+        const targetProdId = res.product?.id || this.request!.productId;
+
+        const updatedData = {
+          ...variantData,
+          id: savedId,
+          variantId: savedId,
+          sku: savedSku,
+          productId: targetProdId
+        };
+
+        this.request!.customVariant = updatedData;
+        if (targetProdId && targetProdId !== this.request!.productId) {
+          this.request!.productId = targetProdId;
         }
+        this.customRequestService.saveCustomVariant(this.request!.id, updatedData);
         this.productService.clearCache();
-        this.triggerToast(
-          'Tạo sản phẩm (Biến thể) thành công',
-          `Đã tạo biến thể "${variantData.name}" (Private) và thêm vào sản phẩm "${res.product?.name || this.request!.productName}" trong danh mục sản phẩm.`,
-          'success'
-        );
+
+        if (res.isUpdated || isEditMode) {
+          this.triggerToast(
+            'Cập nhật sản phẩm thành công',
+            `Đã cập nhật thông tin biến thể "${updatedData.name}" của sản phẩm "${res.product?.name || this.request!.productName}".`,
+            'success'
+          );
+        } else {
+          this.triggerToast(
+            'Tạo sản phẩm (Biến thể) thành công',
+            `Đã tạo biến thể "${updatedData.name}" (Private) và thêm vào sản phẩm "${res.product?.name || this.request!.productName}" trong danh mục sản phẩm.`,
+            'success'
+          );
+        }
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.warn('[saveProductVariant] Không thể đồng bộ qua API DB:', err);
         this.triggerToast(
-          'Lưu biến thể thành công',
+          isEditMode ? 'Cập nhật biến thể thành công' : 'Lưu biến thể thành công',
           `Đã lưu biến thể "${variantData.name}" vào hồ sơ may đo #${this.request!.code}.`,
           'success'
         );

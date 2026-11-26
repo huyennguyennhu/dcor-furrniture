@@ -910,11 +910,12 @@ export const productController = {
     }
   },
 
-  // Thêm biến thể mới vào sản phẩm (dành cho biến thể may đo / custom variant hoặc biến thể thông thường)
+  // Thêm mới hoặc Cập nhật biến thể sản phẩm (dành cho biến thể may đo / custom variant hoặc biến thể thông thường)
   addVariantToProduct: async (req: Request, res: Response): Promise<void> => {
     try {
       const id = req.params.id as string;
       const { 
+        variantId,
         name, 
         sku, 
         price, 
@@ -983,7 +984,123 @@ export const productController = {
         return;
       }
 
-      // Sinh mã SKU duy nhất
+      // --- KIỂM TRA XEM ĐÂY CÓ PHẢI LÀ THAO TÁC CẬP NHẬT BIẾN THỂ ĐÃ TỒN TẠI HAY KHÔNG ---
+      let existingVariant: any = null;
+
+      // 1. Kiểm tra theo variantId (nếu truyền từ client)
+      if (variantId && typeof variantId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(variantId)) {
+        existingVariant = await prisma.productVariant.findUnique({ where: { id: variantId } });
+      }
+
+      // 2. Kiểm tra theo mã SKU được truyền lên
+      if (!existingVariant && sku && sku.trim()) {
+        const varBySku = await prisma.productVariant.findUnique({ where: { sku: sku.trim() } });
+        if (varBySku && (varBySku.productId === product.id || isPrivate)) {
+          existingVariant = varBySku;
+        }
+      }
+
+      // 3. Kiểm tra theo mã hồ sơ may đo customRequestId (tránh tạo 2 biến thể cho cùng 1 đơn custom)
+      if (!existingVariant && customRequestId) {
+        const productVariants = await prisma.productVariant.findMany({
+          where: { productId: product.id }
+        });
+        existingVariant = productVariants.find(v => {
+          const ov = v.optionValues as any;
+          return ov && ov.customRequestId && String(ov.customRequestId).toUpperCase() === String(customRequestId).toUpperCase();
+        }) || null;
+      }
+
+      // =========================================================================
+      // TRƯỜNG HỢP 1: CẬP NHẬT BIẾN THỂ ĐÃ CÓ (KHÔNG TẠO MỚI TRÙNG LẶP SẢN PHẨM)
+      // =========================================================================
+      if (existingVariant) {
+        const updatedVariant = await prisma.productVariant.update({
+          where: { id: existingVariant.id },
+          data: {
+            name: name.trim(),
+            price: Math.round(Number(price)) || product.basePrice,
+            stock: Number(stock) || 1,
+            optionValues: {
+              ...(typeof existingVariant.optionValues === 'object' && existingVariant.optionValues !== null ? existingVariant.optionValues : {}),
+              attributes,
+              images,
+              isPrivate: isPrivate !== false,
+              customRequestId: customRequestId || (existingVariant.optionValues as any)?.customRequestId || null
+            },
+            isActive: true
+          }
+        });
+
+        // Cập nhật tồn kho vật lý trong kho
+        const existingStock = await prisma.warehouseStock.findFirst({
+          where: { variantId: existingVariant.id }
+        });
+        if (existingStock) {
+          await prisma.warehouseStock.update({
+            where: { id: existingStock.id },
+            data: { physicalStock: Number(stock) || 1 }
+          });
+        } else {
+          const defaultWh = await prisma.warehouse.findFirst({ where: { isActive: true } });
+          if (defaultWh) {
+            await prisma.warehouseStock.create({
+              data: {
+                warehouseId: defaultWh.id,
+                variantId: existingVariant.id,
+                physicalStock: Number(stock) || 1,
+                reservedStock: 0,
+                safetyThreshold: 0
+              }
+            });
+          }
+        }
+
+        // Đồng bộ cập nhật vào hồ sơ CustomRequest nếu có customRequestId
+        if (customRequestId) {
+          try {
+            const variantDataForCustom = {
+              id: updatedVariant.id,
+              variantId: updatedVariant.id,
+              name: updatedVariant.name,
+              sku: updatedVariant.sku,
+              price: updatedVariant.price,
+              stock: updatedVariant.stock,
+              isPrivate: true,
+              images,
+              attributes,
+              productId: product.id,
+              updatedAt: new Date().toISOString()
+            };
+            await prisma.$executeRawUnsafe(`
+              UPDATE "CustomRequest"
+              SET "customVariant" = $1::jsonb, "customVariantId" = $2, "updatedAt" = NOW()
+              WHERE "code" = $3 OR "id" = $3
+            `, JSON.stringify(variantDataForCustom), updatedVariant.id, customRequestId);
+          } catch (syncErr) {
+            console.warn('[addVariantToProduct] Lỗi cập nhật CustomRequest:', syncErr);
+          }
+        }
+
+        invalidateAllProductCaches();
+
+        res.json({
+          success: true,
+          isUpdated: true,
+          message: `Đã cập nhật biến thể "${updatedVariant.name}" của sản phẩm "${product.name}" thành công!`,
+          variant: updatedVariant,
+          product: {
+            id: product.id,
+            name: product.name,
+            slug: product.slug
+          }
+        });
+        return;
+      }
+
+      // =========================================================================
+      // TRƯỜNG HỢP 2: TẠO MỚI BIẾN THỂ (LẦN ĐẦU TIÊN)
+      // =========================================================================
       let baseSku = (sku || `VAR-${product.slug.slice(0, 10).toUpperCase()}-${Date.now().toString().slice(-4)}`).trim();
       let finalSku = baseSku;
       const existingSku = await prisma.productVariant.findUnique({ where: { sku: finalSku } });
@@ -1024,10 +1141,37 @@ export const productController = {
         });
       }
 
+      // Đồng bộ vào hồ sơ CustomRequest nếu có customRequestId
+      if (customRequestId) {
+        try {
+          const variantDataForCustom = {
+            id: newVariant.id,
+            variantId: newVariant.id,
+            name: newVariant.name,
+            sku: newVariant.sku,
+            price: newVariant.price,
+            stock: newVariant.stock,
+            isPrivate: true,
+            images,
+            attributes,
+            productId: product.id,
+            createdAt: new Date().toISOString()
+          };
+          await prisma.$executeRawUnsafe(`
+            UPDATE "CustomRequest"
+            SET "customVariant" = $1::jsonb, "customVariantId" = $2, "updatedAt" = NOW()
+            WHERE "code" = $3 OR "id" = $3
+          `, JSON.stringify(variantDataForCustom), newVariant.id, customRequestId);
+        } catch (syncErr) {
+          console.warn('[addVariantToProduct] Lỗi liên kết CustomRequest:', syncErr);
+        }
+      }
+
       invalidateAllProductCaches();
 
       res.json({
         success: true,
+        isUpdated: false,
         message: `Đã tạo và thêm biến thể "${newVariant.name}" vào sản phẩm "${product.name}" thành công!`,
         variant: newVariant,
         product: {

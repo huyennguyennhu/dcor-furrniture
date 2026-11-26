@@ -103,6 +103,7 @@ export interface CustomerAppointment {
 
 export interface CustomerReturnRequest {
   id: string;
+  returnCode?: string;
   customerId: string;
   orderNumber: string;
   productName: string;
@@ -111,10 +112,11 @@ export interface CustomerReturnRequest {
   variantDescription?: string;
   quantity?: number;
   price?: number;
+  returnType?: 'EXCHANGE' | 'REFUND' | string;
   reason: string;
   description: string;
   images: string[];
-  status: 'PENDING' | 'PROCESSING' | 'PREPARING' | 'SHIPPED' | 'COMPLETED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'RETURNING' | 'RECEIVED' | 'EXCHANGING' | 'REFUNDING' | 'PROCESSING' | 'PREPARING' | 'SHIPPED' | 'COMPLETED' | 'REJECTED' | string;
   statusLabel: string;
   refundAmount?: number;
   createdAt: string;

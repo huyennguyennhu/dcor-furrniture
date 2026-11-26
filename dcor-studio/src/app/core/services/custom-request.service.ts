@@ -139,6 +139,7 @@ export interface CustomRequest {
   workOrderCode?: string;
   customVariant?: {
     id: string;
+    variantId?: string;
     name: string;
     sku: string;
     price: number;
@@ -839,19 +840,22 @@ export class CustomRequestService {
     return { updatedRequest: updated, workOrderCode, generatedOrderNumber: updated.generatedOrderNumber || `DCOR-ORD-${target.code.replace('CR-', 'CUST-')}` };
   }
 
-  /** Bước 6: Quản đốc xưởng / KTS Tạo sản phẩm (Tạo biến thể Private) cho yêu cầu custom */
+  /** Bước 6: Quản đốc xưởng / KTS Tạo hoặc Cập nhật sản phẩm (Biến thể Private) cho yêu cầu custom */
   saveCustomVariant(id: string, variant: any): CustomRequest | undefined {
     const target = this.getById(id);
     if (!target) return undefined;
 
+    const isEdit = !!target.customVariant;
     target.customVariant = variant;
     target.updatedAt = new Date().toISOString();
 
-    // Thêm vào timeline tác nghiệp
+    // Thêm vào timeline tác nghiệp (phân biệt Tạo mới vs Cập nhật)
     target.timeline.unshift({
       status: target.status,
-      title: 'Tạo sản phẩm biến thể may đo (Private)',
-      description: `Đã tạo biến thể sản phẩm riêng cho khách hàng: "${variant.name}" (SKU: ${variant.sku || 'N/A'}, Giá: ${new Intl.NumberFormat('vi-VN').format(variant.price || 0)} đ, Tồn kho: ${variant.stock || 1}, Trạng thái: Private).`,
+      title: isEdit ? 'Cập nhật sản phẩm biến thể may đo (Private)' : 'Tạo sản phẩm biến thể may đo (Private)',
+      description: isEdit 
+        ? `Đã cập nhật thông tin biến thể may đo: "${variant.name}" (SKU: ${variant.sku || 'N/A'}, Giá: ${new Intl.NumberFormat('vi-VN').format(variant.price || 0)} đ, Tồn kho: ${variant.stock || 1}).`
+        : `Đã tạo biến thể sản phẩm riêng cho khách hàng: "${variant.name}" (SKU: ${variant.sku || 'N/A'}, Giá: ${new Intl.NumberFormat('vi-VN').format(variant.price || 0)} đ, Tồn kho: ${variant.stock || 1}, Trạng thái: Private).`,
       timestamp: new Date().toISOString(),
       performedBy: 'Quản đốc xưởng DCOR'
     });
@@ -870,7 +874,8 @@ export class CustomRequestService {
   /** Bước 6: Xưởng sản xuất xong -> Nhấn "Lên đơn hàng" -> MỚI CHÍNH THỨC TẠO ĐƠN TRONG TAB ĐƠN HÀNG */
   createOfficialOrderFromProduction(
     id: string,
-    staffName: string = 'Quản đốc xưởng DCOR'
+    staffName: string = 'Quản đốc xưởng DCOR',
+    customData?: any
   ): { updatedRequest: CustomRequest; generatedOrderNumber: string } | undefined {
     const target = this.getById(id);
     if (!target) return undefined;
@@ -894,39 +899,134 @@ export class CustomRequestService {
       this.requestsSubject.next(current);
     }
 
-    // 1. Tự động sinh Đơn hàng chính thức trong Orders store (dcor_replacement_orders_store)
+    // 1. Tự động sinh Đơn hàng chính thức trong Orders store (dcor_replacement_orders_store & dcor_orders_v2_store)
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         const REPLACEMENT_ORDERS_KEY = 'dcor_replacement_orders_store';
         const existing = JSON.parse(localStorage.getItem(REPLACEMENT_ORDERS_KEY) || '[]');
+
+        const orderQty = customData?.quantity || updated.customVariant?.stock || 1;
+        const unitPrice = customData?.unitPrice || updated.customVariant?.price || updated.quotedPrice || 35000000;
+        const totalAmount = customData?.totalAmount || (orderQty * unitPrice);
+        const depositPaid = customData?.depositPaid !== undefined 
+          ? customData.depositPaid 
+          : (updated.quotedDeposit || Math.round(totalAmount * 0.3));
+        const remainingAmount = customData?.remainingAmount !== undefined
+          ? customData.remainingAmount
+          : Math.max(0, totalAmount - depositPaid);
+        const customerName = customData?.customerName || customData?.recipientName || updated.customerName;
+        const customerPhone = customData?.customerPhone || customData?.recipientPhone || updated.customerPhone;
+        const customerEmail = customData?.customerEmail || customData?.recipientEmail || updated.customerEmail || 'khachhang@dcor.vn';
+        const address = customData?.shippingAddress || customData?.customerAddress || updated.customerAddress || 'Showroom DCOR Studio';
+        const productName = customData?.productName || updated.customVariant?.name || `[May đo] ${updated.productName}`;
+        const productSku = customData?.sku || updated.customVariant?.sku || `${updated.productSku || 'DCOR-CUSTOM'}-CUSTOM`;
+        const variantSpecs = customData?.variantSpecs || updated.customVariant?.name || `${updated.length || 0}x${updated.width || 0}x${updated.height || 0} cm | ${updated.material || 'Da bò Ý'} | ${updated.colorName || 'Màu đặt riêng'}`;
+        const productImage = customData?.imageUrl || (updated.customVariant?.images && updated.customVariant.images[0]) || updated.productImage || '/assets/img/furniture-placeholder.svg';
+        const paymentMethod = customData?.paymentMethod || 'BANK_TRANSFER';
+        const deliveryNotes = customData?.deliveryNotes || updated.notes || 'Hàng may đo cao cấp xưởng DCOR, kiểm tra đóng gói cẩn thận.';
+
+        const now = new Date();
+        const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+        const nowFormatted = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
         const customOrder: any = {
           id: generatedOrderNumber,
           orderNumber: generatedOrderNumber,
-          customerName: updated.customerName,
-          phone: updated.customerPhone,
-          email: updated.customerEmail || 'khachhang@dcor.vn',
-          shippingAddress: updated.customerAddress || 'Showroom DCOR Studio',
-          createdAt: new Date().toISOString(),
+          customerName: customerName,
+          phone: customerPhone,
+          customerPhone: customerPhone,
+          email: customerEmail,
+          address: address,
+          shippingAddress: address,
+          province: 'Thành phố Hồ Chí Minh',
+          district: '',
+          ward: '',
+          showroom: 'Xưởng May Đo DCOR Studio',
+          createdAt: nowFormatted,
           status: 'PROCESSING',
-          paymentStatus: 'PARTIAL',
-          totalAmount: updated.quotedPrice || 35000000,
-          depositAmount: updated.quotedDeposit || Math.round((updated.quotedPrice || 35000000) * 0.3),
+          paymentStatus: remainingAmount === 0 ? 'PAID' : 'PARTIAL',
+          paymentMethod: paymentMethod,
+          subTotal: totalAmount,
+          shippingFee: 0,
+          discountAmount: 0,
+          vatRate: 0.1,
+          totalAmount: totalAmount,
+          depositRequired: depositPaid,
+          depositPaid: depositPaid,
+          depositAmount: depositPaid,
+          remainingAmount: remainingAmount,
+          isDepositRequired: true,
+          isHighValue: totalAmount > 50000000,
+          isCustomDesign: true,
+          isGift: false,
           source: 'CUSTOM_ORDER',
           workOrderCode: updated.workOrderCode || `WO-${updated.code.replace('CR-', 'MK-')}`,
           customRequestId: updated.code,
-          note: `[Đơn May Đo Riêng - Hồ sơ ${updated.code}] Kích thước: ${updated.length}x${updated.width}x${updated.height} cm. Chất liệu: ${updated.material}. Màu sắc: ${updated.colorName}. Ghi chú: ${updated.notes || 'Không có'}`,
+          customerNote: deliveryNotes,
+          internalNotes: `[Đơn May Đo Riêng - Hồ sơ ${updated.code}] Kích thước: ${updated.length}x${updated.width}x${updated.height} cm. Chất liệu: ${updated.material}. Màu sắc: ${updated.colorName}. Quản đốc: ${staffName}.`,
+          items: [
+            {
+              id: updated.productId || `item-${generatedOrderNumber}`,
+              name: productName,
+              sku: productSku,
+              variant: variantSpecs,
+              imageUrl: productImage,
+              price: unitPrice,
+              quantity: orderQty,
+              lineTotal: totalAmount,
+              stockAvailable: orderQty
+            }
+          ],
           products: [
             {
               id: updated.productId || 'prod-custom',
-              name: updated.customVariant?.name || `[May đo] ${updated.productName}`,
-              sku: updated.customVariant?.sku || `${updated.productSku || 'DCOR-CUSTOM'}-CUSTOM`,
-              variant: updated.customVariant?.name || `${updated.length}x${updated.width}x${updated.height} cm | ${updated.material || 'Da bò Ý'} | ${updated.colorName || 'Màu đặt riêng'}`,
-              imageUrl: (updated.customVariant?.images && updated.customVariant.images[0]) || updated.productImage || '/assets/img/furniture-placeholder.svg',
-              price: updated.customVariant?.price || updated.quotedPrice || 35000000,
-              quantity: updated.customVariant?.stock || 1,
-              lineTotal: (updated.customVariant?.price || updated.quotedPrice || 35000000) * (updated.customVariant?.stock || 1),
-              stockAvailable: updated.customVariant?.stock || 1,
+              name: productName,
+              sku: productSku,
+              variant: variantSpecs,
+              imageUrl: productImage,
+              price: unitPrice,
+              quantity: orderQty,
+              lineTotal: totalAmount,
+              stockAvailable: orderQty,
               isPrivate: true
+            }
+          ],
+          delivery: {
+            provider: 'Xe tải DCOR Express',
+            trackingCode: `DCOR-SHIP-${updated.code.replace(/[^A-Za-z0-9]/g, '')}`,
+            driverName: 'Đội vận chuyển DCOR',
+            driverPhone: '0901234567',
+            vehiclePlate: '51D-998.24',
+            estimatedDate: '1 - 2 ngày làm việc',
+            failedAttempts: 0,
+            trackingHistory: [
+              {
+                time: nowFormatted,
+                status: 'Đã lên đơn hàng may đo',
+                description: `Hệ thống chính thức tạo đơn #${generatedOrderNumber} từ hồ sơ may đo #${updated.code}`,
+                location: 'Xưởng Sản Xuất May Đo DCOR'
+              },
+              {
+                time: nowFormatted,
+                status: 'Hoàn tất nghiệm thu xuất xưởng',
+                description: 'Sản phẩm đã đạt chuẩn nghiệm thu 4 tiêu chí khắt khe và đóng kiện chờ giao',
+                location: 'Kho Tổng DCOR'
+              }
+            ]
+          },
+          qcChecklist: {
+            surfaceChecked: true,
+            structureChecked: true,
+            cushionLeatherChecked: true,
+            protectiveWrapDone: true
+          },
+          auditLogs: [
+            {
+              id: `log-${Date.now()}-1`,
+              timestamp: nowFormatted,
+              actor: staffName,
+              action: 'Lên đơn hàng may đo chính thức',
+              detail: `Khởi tạo đơn hàng #${generatedOrderNumber} từ hồ sơ yêu cầu #${updated.code} (Số lượng: ${orderQty}, Tổng tiền: ${new Intl.NumberFormat('vi-VN').format(totalAmount)} đ).`
             }
           ]
         };
@@ -935,6 +1035,21 @@ export class CustomRequestService {
         if (oIdx >= 0) existing[oIdx] = customOrder;
         else existing.unshift(customOrder);
         localStorage.setItem(REPLACEMENT_ORDERS_KEY, JSON.stringify(existing));
+
+        // Lưu đồng thời vào dcor_orders_v2_store để tab Đơn hàng hiển thị ngay lập tức
+        const ORDERS_V2_KEY = 'dcor_orders_v2_store';
+        const ordersV2Raw = localStorage.getItem(ORDERS_V2_KEY);
+        if (ordersV2Raw) {
+          try {
+            const ordersV2 = JSON.parse(ordersV2Raw);
+            if (Array.isArray(ordersV2)) {
+              const v2Idx = ordersV2.findIndex((o: any) => o.orderNumber === generatedOrderNumber || o.id === generatedOrderNumber);
+              if (v2Idx >= 0) ordersV2[v2Idx] = customOrder;
+              else ordersV2.unshift(customOrder);
+              localStorage.setItem(ORDERS_V2_KEY, JSON.stringify(ordersV2));
+            }
+          } catch (_) {}
+        }
 
         // 2. Tự động sinh Lệnh xuất kho vật tư thi công
         const TX_STORAGE_KEY = 'dcor_inventory_transactions';

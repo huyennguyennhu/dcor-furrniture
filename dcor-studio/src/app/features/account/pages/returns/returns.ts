@@ -2,11 +2,37 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, ActivatedRoute } from '@angular/router';
-import { LucideAngularModule, Package, CheckCircle2, AlertCircle, ShieldCheck, RefreshCw, FileText, Eye, Image as ImageIcon, X } from 'lucide-angular';
+import { 
+  LucideAngularModule, 
+  Package, 
+  CheckCircle2, 
+  AlertCircle, 
+  ShieldCheck, 
+  RefreshCw, 
+  FileText, 
+  Eye, 
+  Image as ImageIcon, 
+  X,
+  Truck,
+  Check,
+  XCircle,
+  Clock,
+  ArrowRightLeft,
+  DollarSign,
+  Copy
+} from 'lucide-angular';
 import { GuestPhoneBannerComponent } from '../../../../shared/components/guest-phone-banner/guest-phone-banner';
 import { CustomerService, CustomerReturnRequest } from '../../../../core/services/customer.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Subscription } from 'rxjs';
+
+export interface ReturnTimelineStep {
+  key: string;
+  title: string;
+  icon: any;
+  status: 'completed' | 'current' | 'pending' | 'cancelled';
+  time?: string | null;
+}
 
 @Component({
   selector: 'app-account-returns',
@@ -25,7 +51,14 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
     FileText,
     Eye,
     Image: ImageIcon,
-    X
+    X,
+    Truck,
+    Check,
+    XCircle,
+    Clock,
+    ArrowRightLeft,
+    DollarSign,
+    Copy
   };
 
   returnsList: CustomerReturnRequest[] = [];
@@ -35,21 +68,16 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
 
-  // Hệ thống Tabs theo đúng yêu cầu quy trình:
-  // 1. Tất cả (ALL)
-  // 2. Chờ duyệt (PENDING): Vừa gửi yêu cầu, chờ admin phê duyệt
-  // 3. Đang xử lý (PROCESSING): Sau khi duyệt xong => user gửi hàng lỗi về cho Dcor
-  // 4. Đang chuẩn bị (PREPARING): Admin xác nhận đã nhận được hàng bị lỗi & chuẩn bị hàng mới
-  // 5. Đang giao hàng (SHIPPED): Đang vận chuyển sản phẩm đổi mới đến tận nhà khách
-  // 6. Hoàn tất đổi trả (COMPLETED): Khách nhận hàng đổi mới hoặc hoàn tất
-  // 7. Đã từ chối (REJECTED): Không chấp thuận yêu cầu đổi trả
+  // Hệ thống Tabs chuẩn hóa theo State Machine DCor
   readonly tabs = [
     { key: 'ALL', label: 'Tất cả' },
     { key: 'PENDING', label: 'Chờ duyệt' },
-    { key: 'PROCESSING', label: 'Đang xử lý' },
-    { key: 'PREPARING', label: 'Đang chuẩn bị' },
-    { key: 'SHIPPED', label: 'Đang giao hàng' },
-    { key: 'COMPLETED', label: 'Hoàn tất đổi trả' },
+    { key: 'APPROVED', label: 'Đã duyệt' },
+    { key: 'RETURNING', label: 'Đang gửi hàng' },
+    { key: 'RECEIVED', label: 'Đã nhận & QC' },
+    { key: 'EXCHANGING', label: 'Đang đổi mới' },
+    { key: 'REFUNDING', label: 'Đang hoàn tiền' },
+    { key: 'COMPLETED', label: 'Hoàn tất' },
     { key: 'REJECTED', label: 'Đã từ chối' }
   ];
 
@@ -193,23 +221,35 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
   getCount(key: string): number {
     if (!this.returnsList) return 0;
     if (key === 'ALL') return this.returnsList.length;
-    return this.returnsList.filter(r => r.status === key).length;
+    return this.returnsList.filter(r => this.matchesTab(r.status, key)).length;
   }
 
   applyFilter(): void {
     if (this.activeTab === 'ALL') {
       this.filteredReturns = [...this.returnsList];
     } else {
-      this.filteredReturns = this.returnsList.filter(r => r.status === this.activeTab);
+      this.filteredReturns = this.returnsList.filter(r => this.matchesTab(r.status, this.activeTab));
     }
+  }
+
+  private matchesTab(status: string, tab: string): boolean {
+    if (status === tab) return true;
+    if (tab === 'APPROVED' && status === 'PROCESSING') return true;
+    if (tab === 'EXCHANGING' && (status === 'PREPARING' || status === 'SHIPPED')) return true;
+    return false;
   }
 
   getStatusBadgeClass(status: string): string {
     switch (status) {
       case 'PENDING': return 'status-pending';
+      case 'APPROVED':
       case 'PROCESSING': return 'status-processing';
-      case 'PREPARING': return 'status-preparing';
-      case 'SHIPPED': return 'status-shipped';
+      case 'RETURNING': return 'status-returning';
+      case 'RECEIVED': return 'status-received';
+      case 'EXCHANGING':
+      case 'PREPARING':
+      case 'SHIPPED': return 'status-preparing';
+      case 'REFUNDING': return 'status-refunding';
       case 'COMPLETED': return 'status-completed';
       case 'REJECTED': return 'status-rejected';
       default: return 'status-default';
@@ -219,6 +259,11 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
   getStatusText(status: string): string {
     switch (status) {
       case 'PENDING': return 'Chờ duyệt';
+      case 'APPROVED': return 'Đã duyệt thu hồi';
+      case 'RETURNING': return 'Đang gửi hàng về DCOR';
+      case 'RECEIVED': return 'DCOR đã nhận & Đang QC';
+      case 'EXCHANGING': return 'Đang chuẩn bị hàng mới';
+      case 'REFUNDING': return 'Đang hoàn tiền';
       case 'PROCESSING': return 'Đang xử lý (Gửi hàng về)';
       case 'PREPARING': return 'Đang chuẩn bị hàng mới';
       case 'SHIPPED': return 'Đang giao hàng';
@@ -226,6 +271,34 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
       case 'REJECTED': return 'Đã từ chối';
       default: return status;
     }
+  }
+
+  getReturnStatusClass(ret: CustomerReturnRequest): string {
+    if (!ret) return 'pending';
+    switch (ret.status) {
+      case 'PENDING': return 'pending';
+      case 'APPROVED':
+      case 'PROCESSING': return 'processing';
+      case 'RETURNING': return 'shipped';
+      case 'RECEIVED': return 'confirmed';
+      case 'EXCHANGING':
+      case 'PREPARING': return 'processing';
+      case 'SHIPPED': return 'shipped';
+      case 'REFUNDING': return 'waiting-payment';
+      case 'COMPLETED': return 'delivered';
+      case 'REJECTED': return 'cancelled';
+      default: return 'pending';
+    }
+  }
+
+  isExchangeReturn(ret: CustomerReturnRequest | null): boolean {
+    if (!ret) return false;
+    return ret.returnType === 'EXCHANGE' || (ret.reason ? ret.reason.includes('Đổi') : false);
+  }
+
+  isRefundReturn(ret: CustomerReturnRequest | null): boolean {
+    if (!ret) return false;
+    return ret.returnType === 'REFUND' || (!this.isExchangeReturn(ret));
   }
 
   // ==========================================
@@ -306,6 +379,93 @@ export class AccountReturnsComponent implements OnInit, OnDestroy {
       document.body.style.overflow = '';
     } catch (_) {}
     this.cdr.markForCheck();
+  }
+
+  getReturnTimelineSteps(ret: CustomerReturnRequest | null | undefined): ReturnTimelineStep[] {
+    if (!ret) return [];
+
+    if (ret.status === 'REJECTED') {
+      return [
+        {
+          key: 'PENDING',
+          title: 'Tiếp nhận yêu cầu',
+          icon: this.icons.FileText,
+          status: 'completed',
+          time: ret.createdAt
+        },
+        {
+          key: 'REJECTED',
+          title: 'Yêu cầu bị từ chối',
+          icon: this.icons.XCircle,
+          status: 'cancelled',
+          time: ret.updatedAt || ret.createdAt
+        }
+      ];
+    }
+
+    const isEx = (ret as any).returnType === 'EXCHANGE' || ret.reason?.includes('Đổi') || (ret as any).type === 'EXCHANGE';
+    const status: string = ret.status;
+
+    const isDone = (targetList: string[]) => targetList.includes(status);
+
+    const step1Done = isDone(['APPROVED', 'PROCESSING', 'RETURNING', 'RECEIVED', 'EXCHANGING', 'PREPARING', 'SHIPPED', 'REFUNDING', 'COMPLETED']);
+    const step2Done = isDone(['RETURNING', 'RECEIVED', 'EXCHANGING', 'PREPARING', 'SHIPPED', 'REFUNDING', 'COMPLETED']);
+    const step3Done = isDone(['RECEIVED', 'EXCHANGING', 'PREPARING', 'SHIPPED', 'REFUNDING', 'COMPLETED']);
+    const step4Done = isDone(['EXCHANGING', 'PREPARING', 'SHIPPED', 'REFUNDING', 'COMPLETED']);
+    const step5Done = isDone(['COMPLETED']);
+
+    return [
+      {
+        key: 'PENDING',
+        title: 'Tiếp nhận & Chờ duyệt',
+        icon: this.icons.FileText,
+        status: step1Done ? 'completed' : 'current',
+        time: ret.createdAt
+      },
+      {
+        key: 'APPROVED',
+        title: 'Đã duyệt thu hồi',
+        icon: this.icons.CheckCircle2,
+        status: step2Done ? 'completed' : (status === 'APPROVED' || status === 'PROCESSING' ? 'current' : 'pending'),
+        time: (step2Done || status === 'APPROVED' || status === 'PROCESSING') ? ret.updatedAt : null
+      },
+      {
+        key: 'RETURNING',
+        title: 'Đang gửi về DCOR',
+        icon: this.icons.Truck,
+        status: step3Done ? 'completed' : (status === 'RETURNING' ? 'current' : 'pending'),
+        time: (step3Done || status === 'RETURNING') ? ret.updatedAt : null
+      },
+      {
+        key: 'RECEIVED',
+        title: 'DCOR đã nhận & QC',
+        icon: this.icons.ShieldCheck,
+        status: step4Done ? 'completed' : (status === 'RECEIVED' ? 'current' : 'pending'),
+        time: (step4Done || status === 'RECEIVED') ? ret.updatedAt : null
+      },
+      {
+        key: 'PROCESSING_NEXT',
+        title: isEx ? 'Chuẩn bị sản phẩm đổi' : 'Đang hoàn tiền',
+        icon: isEx ? this.icons.RefreshCw : this.icons.DollarSign,
+        status: step5Done ? 'completed' : (['EXCHANGING', 'REFUNDING', 'PREPARING', 'SHIPPED'].includes(status) ? 'current' : 'pending'),
+        time: (step5Done || ['EXCHANGING', 'REFUNDING', 'PREPARING', 'SHIPPED'].includes(status)) ? ret.updatedAt : null
+      },
+      {
+        key: 'COMPLETED',
+        title: 'Hoàn tất đổi trả',
+        icon: this.icons.Check,
+        status: status === 'COMPLETED' ? 'completed' : 'pending',
+        time: status === 'COMPLETED' ? ret.updatedAt : null
+      }
+    ];
+  }
+
+  copyToClipboard(text: string, label: string): void {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        alert(`Đã sao chép ${label}: ${text}`);
+      }).catch(() => {});
+    }
   }
 
   zoomImage(url: string, event?: Event): void {

@@ -804,6 +804,212 @@ export class OrdersService {
     return this.ordersSubject.getValue();
   }
 
+  public normalizeOrder(order: any): OrderV2 {
+    if (!order) return order;
+
+    // 1. Chuyển đổi products -> items nếu items bị thiếu hoặc rỗng
+    if ((!order.items || order.items.length === 0) && Array.isArray(order.products) && order.products.length > 0) {
+      order.items = order.products.map((p: any, idx: number) => ({
+        id: p.id || `item-cust-${idx}`,
+        name: p.name || 'Sản phẩm may đo',
+        sku: p.sku || 'SKU-CUSTOM',
+        variant: p.variant || 'May đo theo yêu cầu',
+        imageUrl: p.imageUrl || '/assets/img/furniture-placeholder.svg',
+        price: p.price || order.totalAmount || 0,
+        quantity: p.quantity || 1,
+        lineTotal: p.lineTotal || ((p.price || order.totalAmount || 0) * (p.quantity || 1)),
+        stockAvailable: p.stockAvailable || 1
+      }));
+    }
+
+    // 2. Chuẩn hóa địa chỉ giao hàng
+    if (!order.address && (order.shippingAddress || order.customerAddress)) {
+      order.address = order.shippingAddress || order.customerAddress;
+    }
+
+    // 3. Chuẩn hóa số điện thoại
+    if (!order.phone && order.customerPhone) {
+      order.phone = order.customerPhone;
+    }
+
+    // 4. Chuẩn hóa subTotal & totalAmount
+    if (!order.subTotal) {
+      order.subTotal = (order.items && order.items.length > 0)
+        ? order.items.reduce((sum: number, it: any) => sum + (it.lineTotal || (it.price * it.quantity)), 0)
+        : (order.totalAmount || 0);
+    }
+    if (!order.totalAmount) {
+      order.totalAmount = order.subTotal;
+    }
+
+    // 5. Chuẩn hóa tiền cọc & số tiền còn lại
+    if (!order.depositPaid && order.depositAmount) {
+      order.depositPaid = order.depositAmount;
+    }
+    if (order.remainingAmount === undefined) {
+      order.remainingAmount = Math.max(0, (order.totalAmount || 0) - (order.depositPaid || 0));
+    }
+
+    // 6. Phương thức thanh toán & trạng thái
+    if (!order.paymentMethod) {
+      order.paymentMethod = 'BANK_TRANSFER';
+    }
+    if (!order.paymentStatus) {
+      order.paymentStatus = (order.remainingAmount === 0 && order.totalAmount > 0) ? 'PAID' : 'PARTIAL';
+    }
+
+    // 7. Thông tin vận chuyển
+    if (!order.delivery) {
+      order.delivery = {
+        provider: 'Xe tải DCOR Express',
+        trackingCode: `DCOR-SHIP-${(order.orderNumber || order.id || '').replace(/[^A-Za-z0-9]/g, '')}`,
+        driverName: 'Đội vận chuyển DCOR',
+        driverPhone: '0901234567',
+        vehiclePlate: '51D-998.24',
+        estimatedDate: '1 - 2 ngày làm việc',
+        failedAttempts: 0,
+        trackingHistory: [
+          {
+            time: order.createdAt || new Date().toISOString(),
+            status: 'Đã lên đơn hàng',
+            description: 'Tiếp nhận đơn hàng thành công',
+            location: 'DCOR Studio'
+          }
+        ]
+      };
+    }
+
+    // 8. Audit logs
+    if (!order.auditLogs || order.auditLogs.length === 0) {
+      order.auditLogs = [
+        {
+          id: `log-init-${Date.now()}`,
+          timestamp: order.createdAt || new Date().toISOString(),
+          actor: 'Hệ thống DCOR',
+          action: 'Khởi tạo đơn hàng',
+          detail: `Hệ thống ghi nhận đơn hàng #${order.orderNumber || order.id}`
+        }
+      ];
+    }
+
+    return order as OrderV2;
+  }
+
+  public synthesizeFromCustomRequest(codeOrOrderNumber: string): OrderV2 | undefined {
+    if (typeof window === 'undefined' || !window.localStorage) return undefined;
+    try {
+      const crRaw = localStorage.getItem('dcor_admin_custom_requests_v6');
+      if (!crRaw) return undefined;
+      const crList = JSON.parse(crRaw);
+      if (!Array.isArray(crList)) return undefined;
+
+      const match = codeOrOrderNumber.match(/CUST-([0-9]+)/i) || codeOrOrderNumber.match(/CR-([0-9]+)/i);
+      const suffix = match ? match[1] : '';
+      
+      const cr = crList.find((r: any) => 
+        (suffix && r.code && r.code.endsWith(suffix)) ||
+        r.code === codeOrOrderNumber ||
+        r.generatedOrderNumber === codeOrOrderNumber ||
+        codeOrOrderNumber.includes(r.code)
+      );
+
+      if (!cr) return undefined;
+
+      const orderNumber = cr.generatedOrderNumber || (codeOrOrderNumber.startsWith('DCOR-ORD-') ? codeOrOrderNumber : `DCOR-ORD-${cr.code.replace('CR-', 'CUST-')}`);
+      const qty = cr.customVariant?.stock || 1;
+      const unitPrice = cr.customVariant?.price || cr.quotedPrice || 35000000;
+      const total = qty * unitPrice;
+      const deposit = cr.quotedDeposit || Math.round(total * 0.3);
+      const remaining = Math.max(0, total - deposit);
+      const specs = cr.customVariant?.name || `${cr.length || 0}x${cr.width || 0}x${cr.height || 0} cm | ${cr.material || 'Da bò Ý'} | ${cr.colorName || 'Màu đặt riêng'}`;
+      const img = (cr.customVariant?.images && cr.customVariant.images[0]) || cr.productImage || '/assets/img/furniture-placeholder.svg';
+
+      const synthesized: OrderV2 = {
+        id: orderNumber,
+        orderNumber: orderNumber,
+        createdAt: cr.createdAt || 'Hôm nay',
+        status: cr.status === 'COMPLETED' ? 'COMPLETED' : 'PROCESSING',
+        paymentStatus: remaining === 0 ? 'PAID' : 'PARTIAL',
+        paymentMethod: 'BANK_TRANSFER',
+        customerName: cr.customerName || 'Khách hàng may đo',
+        phone: cr.customerPhone || '0901234567',
+        customerPhone: cr.customerPhone || '0901234567',
+        email: cr.customerEmail || 'khachhang@dcor.vn',
+        address: cr.customerAddress || 'Showroom DCOR Studio',
+        province: 'Thành phố Hồ Chí Minh',
+        district: '',
+        ward: '',
+        showroom: 'Xưởng May Đo DCOR Studio',
+        items: [
+          {
+            id: cr.productId || `item-${orderNumber}`,
+            name: cr.customVariant?.name || `[May đo] ${cr.productName}`,
+            sku: cr.customVariant?.sku || `VAR-${cr.code}`,
+            variant: specs,
+            imageUrl: img,
+            price: unitPrice,
+            quantity: qty,
+            lineTotal: total,
+            stockAvailable: qty
+          }
+        ],
+        subTotal: total,
+        shippingFee: 0,
+        discountAmount: 0,
+        vatRate: 0.1,
+        totalAmount: total,
+        depositRequired: deposit,
+        depositPaid: deposit,
+        remainingAmount: remaining,
+        isDepositRequired: true,
+        paymentHoldReason: 'NONE',
+        isHighValue: total > 50000000,
+        isCustomDesign: true,
+        isGift: false,
+        source: 'CUSTOM_ORDER',
+        workOrderCode: cr.workOrderCode || `WO-${cr.code.replace('CR-', 'MK-')}`,
+        customRequestId: cr.code,
+        customerNote: cr.notes || 'Đơn hàng sản xuất may đo từ Hồ sơ Custom Request.',
+        internalNotes: `Hồ sơ may đo #${cr.code}. Quản đốc / KTS: ${cr.assignedStaff || 'KTS. Lê Nam'}.`,
+        delivery: {
+          provider: 'Xe tải DCOR Express',
+          trackingCode: `DCOR-SHIP-${cr.code.replace(/[^A-Za-z0-9]/g, '')}`,
+          driverName: 'Đội vận chuyển DCOR',
+          driverPhone: '0901234567',
+          vehiclePlate: '51D-998.24',
+          estimatedDate: '1 - 2 ngày làm việc',
+          failedAttempts: 0,
+          trackingHistory: [
+            {
+              time: cr.createdAt || 'Hôm nay',
+              status: 'Đã lên đơn hàng may đo',
+              description: `Hệ thống chính thức tạo đơn #${orderNumber} từ hồ sơ #${cr.code}`,
+              location: 'Xưởng Sản Xuất May Đo DCOR'
+            }
+          ]
+        },
+        qcChecklist: {
+          surfaceChecked: true,
+          structureChecked: true,
+          cushionLeatherChecked: true,
+          protectiveWrapDone: true
+        },
+        auditLogs: [
+          {
+            id: `log-${Date.now()}`,
+            timestamp: cr.createdAt || 'Hôm nay',
+            actor: 'Quản đốc xưởng DCOR',
+            action: 'Tạo đơn hàng may đo từ Xưởng',
+            detail: `Khởi tạo đơn hàng #${orderNumber} từ hồ sơ yêu cầu #${cr.code}`
+          }
+        ]
+      };
+
+      return synthesized;
+    } catch (_) {}
+    return undefined;
+  }
+
   getOrderById(id: string): OrderV2 | undefined {
     const rawId = (id || '').trim();
     const cleanId = rawId.replace(/^#/g, '');
@@ -823,6 +1029,38 @@ export class OrdersService {
         o.orderNumber.toLowerCase() === cleanId.toLowerCase()
       );
       if (found) {
+        found = this.normalizeOrder(found);
+        const current = this.orders;
+        const exIdx = current.findIndex(o => o.id === found!.id || o.orderNumber === found!.orderNumber);
+        if (exIdx >= 0) current[exIdx] = found;
+        else current.unshift(found);
+        this.save(current);
+        return found;
+      }
+    }
+
+    // Nếu tìm thấy nhưng items rỗng hoặc thiếu thông tin sản phẩm, kiểm tra khôi phục từ custom request
+    if (found) {
+      found = this.normalizeOrder(found);
+      if ((!found.items || found.items.length === 0) && (cleanId.includes('CUST-') || cleanId.includes('CR-') || (found as any).source === 'CUSTOM_ORDER')) {
+        const synthesized = this.synthesizeFromCustomRequest(cleanId);
+        if (synthesized) {
+          found = { ...found, ...synthesized, items: synthesized.items };
+          const current = this.orders;
+          const exIdx = current.findIndex(o => o.id === found!.id || o.orderNumber === found!.orderNumber);
+          if (exIdx >= 0) current[exIdx] = found;
+          this.save(current);
+        }
+      }
+      return found;
+    }
+
+    // Nếu chưa tìm thấy và mã có chứa CUST- hoặc CR-
+    if (!found && (cleanId.includes('CUST-') || cleanId.includes('CR-'))) {
+      const synthesized = this.synthesizeFromCustomRequest(cleanId);
+      if (synthesized) {
+        found = synthesized;
+        this.saveReplacementOrder(found);
         const current = this.orders;
         current.unshift(found);
         this.save(current);

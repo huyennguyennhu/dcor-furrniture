@@ -502,132 +502,290 @@
 
 <!-- ============================================== -->
 <!-- MODAL: YÊU CẦU ĐỔI TRẢ -->
-<!-- ============================================== -->
-<!-- POPUP CHỌN SẢN PHẨM ĐỔI TRẢ (KHI ĐƠN > 1 MÓN) -->
-<!-- ============================================== -->
+<!-- ============================================================== -->
+<!-- POPUP 1: CHỌN 1 HOẶC NHIỀU SẢN PHẨM CẦN ĐỔI TRẢ (SELECTION MODAL) -->
+<!-- ============================================================== -->
 <div *ngIf="isSelectReturnItemModalOpen" class="modal-overlay" (click)="isSelectReturnItemModalOpen = false">
-  <div class="modal-content select-return-item-modal" (click)="$event.stopPropagation()" style="max-width: 620px;">
-    <div class="modal-header">
-      <h3 class="modal-title">Chọn sản phẩm cần Đổi / Trả ({{ targetOrderForReturn?.orderNumber }})</h3>
+  <div class="modal-content select-return-item-modal" (click)="$event.stopPropagation()" style="max-width: 680px; border-radius: 14px;">
+    <div class="modal-header" style="border-bottom: 1px solid #EAE1D7; padding-bottom: 14px;">
+      <div>
+        <h3 class="modal-title" style="color: #5C402A; font-size: 17px; font-weight: 700;">
+          Chọn sản phẩm cần Đổi / Trả
+        </h3>
+        <span style="font-size: 12.5px; color: #8C7058;">Đơn hàng: #{{ targetOrderForReturn?.orderNumber }}</span>
+      </div>
       <button type="button" class="close-btn" (click)="isSelectReturnItemModalOpen = false">×</button>
     </div>
 
-    <div class="modal-form" style="padding-top: 12px;">
-      <p class="modal-tip" style="margin-bottom: 14px;">
-        Mỗi yêu cầu đổi trả chỉ áp dụng cho <strong>1 loại sản phẩm duy nhất</strong>. Vui lòng chọn sản phẩm cần hỗ trợ và điều chỉnh số lượng tương ứng:
-      </p>
+    <div class="modal-form" style="padding-top: 14px;">
+      <!-- Thanh công cụ chọn nhanh -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 8px 12px; background: #FAF7F5; border-radius: 8px; border: 1px solid #EAE1D7;">
+        <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #5C402A; cursor: pointer; user-select: none;">
+          <input type="checkbox"
+                 [checked]="isAllReturnItemsSelected"
+                 (change)="toggleSelectAllReturnItems()"
+                 style="width: 17px; height: 17px; accent-color: #765337; cursor: pointer;" />
+          <span>Chọn tất cả sản phẩm</span>
+        </label>
+        <span style="font-size: 12.5px; color: #765337; font-weight: 600;">
+          Đã chọn: {{ selectedReturnItemsCount }}/{{ returnSelectableItemsList.length }} sản phẩm
+        </span>
+      </div>
 
-      <div class="select-return-items-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; margin-bottom: 16px;">
-        <div *ngFor="let item of returnSelectableItems"
-             (click)="selectItemForReturn(item)"
+      <!-- Danh sách sản phẩm cho phép tick chọn 1 hoặc nhiều -->
+      <div class="select-return-items-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 380px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;">
+        <div *ngFor="let item of returnSelectableItemsList"
+             (click)="toggleReturnItemSelection(item)"
              style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px; border: 1.5px solid; cursor: pointer; transition: all 0.2s;"
-             [style.borderColor]="selectedReturnItem === item ? '#765337' : '#E5E7EB'"
-             [style.backgroundColor]="selectedReturnItem === item ? '#FAF7F5' : '#FFFFFF'">
-          <input type="radio"
-                 name="selectedReturnItemRadio"
-                 [checked]="selectedReturnItem === item"
-                 style="width: 18px; height: 18px; accent-color: #765337; cursor: pointer; flex-shrink: 0;" />
+             [style.borderColor]="item.selected ? '#765337' : '#E5E7EB'"
+             [style.backgroundColor]="item.selected ? '#FAF7F5' : '#FFFFFF'">
+          
+          <!-- Checkbox chọn SP -->
+          <input type="checkbox"
+                 [checked]="item.selected"
+                 (click)="$event.stopPropagation()"
+                 (change)="toggleReturnItemSelection(item)"
+                 style="width: 19px; height: 19px; accent-color: #765337; cursor: pointer; flex-shrink: 0;" />
+
+          <!-- Ảnh SP -->
           <img [src]="item.imageUrl || '/assets/img/furniture-placeholder.svg'"
                [alt]="item.productName"
-               style="width: 56px; height: 56px; border-radius: 8px; object-fit: cover; border: 1px solid #E5E7EB; flex-shrink: 0;" />
+               style="width: 54px; height: 54px; border-radius: 8px; object-fit: cover; border: 1px solid #EAE1D7; flex-shrink: 0;" />
+
+          <!-- Chi tiết SP -->
           <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 600; font-size: 14px; color: #111827; margin-bottom: 2px;">{{ item.productName }}</div>
-            <div style="font-size: 12.5px; color: #6B7280;" *ngIf="item.variantDescription">{{ item.variantDescription }}</div>
-            <div style="font-size: 12.5px; color: #4B5563; margin-top: 4px;">
-              Đã mua: <strong>x{{ item.quantity }}</strong> • Đơn giá: <strong>{{ item.price | number }} đ</strong>
+            <div style="font-weight: 600; font-size: 13.5px; color: #111827; margin-bottom: 2px;">{{ item.productName }}</div>
+            <div style="font-size: 12px; color: #6B7280;" *ngIf="item.variantDescription">{{ item.variantDescription }}</div>
+            <div style="font-size: 12px; color: #4B5563; margin-top: 3px;">
+              Đã mua: <strong>x{{ item.maxQuantity }}</strong> • Đơn giá: <strong>{{ item.unitPrice | number }} đ</strong>
             </div>
           </div>
 
-          <!-- Bộ chỉnh số lượng (chỉ hiện khi được chọn và số lượng mua > 1) -->
-          <div *ngIf="selectedReturnItem === item" (click)="$event.stopPropagation()" style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
-            <button type="button" (click)="decreaseReturnQty()" [disabled]="selectedReturnQuantity <= 1"
-                    style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #D1D5DB; background: #fff; font-weight: 700; cursor: pointer;">-</button>
-            <span style="min-width: 24px; text-align: center; font-weight: 700; font-size: 14px;">{{ selectedReturnQuantity }}</span>
-            <button type="button" (click)="increaseReturnQty()" [disabled]="selectedReturnQuantity >= (item.quantity || 1)"
-                    style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid #D1D5DB; background: #fff; font-weight: 700; cursor: pointer;">+</button>
+          <!-- Bộ điều chỉnh số lượng cần đổi trả -->
+          <div *ngIf="item.selected" (click)="$event.stopPropagation()" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; background: #FFF; padding: 4px 6px; border: 1px solid #D1D5DB; border-radius: 8px;">
+            <button type="button"
+                    (click)="decreaseItemReturnQty(item)"
+                    [disabled]="item.quantity <= 1"
+                    style="width: 26px; height: 26px; border-radius: 6px; border: none; background: #F3F4F6; font-weight: 700; cursor: pointer; color: #374151; display: flex; align-items: center; justify-content: center;">-</button>
+            <span style="min-width: 26px; text-align: center; font-weight: 700; font-size: 13px; color: #5C402A;">{{ item.quantity }}</span>
+            <button type="button"
+                    (click)="increaseItemReturnQty(item)"
+                    [disabled]="item.quantity >= item.maxQuantity"
+                    style="width: 26px; height: 26px; border-radius: 6px; border: none; background: #F3F4F6; font-weight: 700; cursor: pointer; color: #374151; display: flex; align-items: center; justify-content: center;">+</button>
           </div>
         </div>
       </div>
 
-      <div class="modal-footer">
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #EAE1D7; padding-top: 14px;">
         <button type="button" class="btn-cancel" (click)="isSelectReturnItemModalOpen = false">Hủy</button>
-        <button type="button" class="cta-btn" [disabled]="!selectedReturnItem" [style.opacity]="!selectedReturnItem ? 0.5 : 1" (click)="confirmReturnItemSelection()">
-          Tiếp tục đổi trả
+        <button type="button"
+                class="cta-btn"
+                [disabled]="selectedReturnItemsCount === 0"
+                [style.opacity]="selectedReturnItemsCount === 0 ? 0.45 : 1"
+                (click)="confirmReturnItemSelection()"
+                style="background: #765337; color: #FFF; border: none; padding: 9px 20px; border-radius: 8px; font-weight: 600; font-size: 13.5px; cursor: pointer;">
+          Tiếp tục đổi trả ({{ selectedReturnItemsCount }} sản phẩm) ➔
         </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ============================================== -->
+<!-- ============================================================== -->
+<!-- POPUP 2: ĐIỀN THÔNG TIN ĐỔI TRẢ DẠNG DANH SÁCH (MULTI-SUBFORM) -->
+<!-- ============================================================== -->
 <div *ngIf="isReturnModalOpen" class="modal-overlay" (click)="isReturnModalOpen = false">
-  <div class="modal-content" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3 class="modal-title">Yêu cầu đổi trả đơn hàng {{ targetOrderForReturn?.orderNumber }}</h3>
+  <div class="modal-content" (click)="$event.stopPropagation()" style="max-width: 780px; max-height: 90vh; display: flex; flex-direction: column; border-radius: 14px;">
+    
+    <!-- Modal Header -->
+    <div class="modal-header" style="border-bottom: 1px solid #EAE1D7; padding-bottom: 12px; flex-shrink: 0;">
+      <div>
+        <h3 class="modal-title" style="color: #5C402A; font-size: 17px; font-weight: 700;">
+          Phiếu yêu cầu đổi trả đơn hàng #{{ targetOrderForReturn?.orderNumber }}
+        </h3>
+        <p style="font-size: 12px; color: #8C7058; margin-top: 2px;">
+          Danh sách {{ returnSubFormsList.length }} sản phẩm đã chọn đổi trả. Vui lòng cung cấp lý do và minh chứng cho từng món.
+        </p>
+      </div>
       <button type="button" class="close-btn" (click)="isReturnModalOpen = false">×</button>
     </div>
 
-    <form (submit)="submitReturnRequest(); $event.preventDefault()" class="modal-form">
-      <div *ngIf="selectedReturnItem" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #FAF7F5; border: 1px solid #E5D9CF; border-radius: 8px; margin-bottom: 12px;">
-        <img [src]="selectedReturnItem.imageUrl || '/assets/img/furniture-placeholder.svg'" style="width: 42px; height: 42px; border-radius: 6px; object-fit: cover;" />
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 13px; font-weight: 600; color: #111827;">{{ selectedReturnItem.productName }}</div>
-          <div style="font-size: 12px; color: #6B7280;">Số lượng đổi trả: <strong>x{{ selectedReturnQuantity }}</strong></div>
-        </div>
-      </div>
-      <p class="modal-tip">Chính sách Dcor hỗ trợ đổi mới miễn phí trong vòng 7 ngày đối với các sản phẩm có lỗi từ nhà
-        sản xuất hoặc hư hại do vận chuyển.</p>
-
-      <div class="form-group">
-        <label class="form-label">Lý do yêu cầu đổi trả <span class="required">*</span></label>
-        <select [(ngModel)]="returnReason" name="returnReason" class="form-input select">
-          <option *ngFor="let r of returnReasonOptions" [value]="r">{{ r }}</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Mô tả tình trạng chi tiết</label>
-        <textarea [(ngModel)]="returnDescription" name="returnDescription" class="form-input textarea"
-          placeholder="Mô tả cụ thể vết xước, góc nứt hoặc sự sai khác..."></textarea>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Hình ảnh / Bằng chứng lỗi sản phẩm <span class="required">*</span></label>
-
-        <!-- Nút tải ảnh hoặc chụp ảnh trực tiếp -->
-        <div class="upload-actions-row">
-          <label class="upload-action-btn">
-            <lucide-angular [img]="icons.Image" size="18"></lucide-angular>
-            <span>Tải ảnh từ máy</span>
-            <input type="file" multiple accept="image/*" (change)="onReturnImagePicked($event)"
-              style="display: none;" />
-          </label>
-
-          <label class="upload-action-btn camera-btn">
-            <lucide-angular [img]="icons.Plus" size="18"></lucide-angular>
-            <span>Chụp ảnh (Camera)</span>
-            <input type="file" accept="image/*" capture="environment" (change)="onReturnImagePicked($event)"
-              style="display: none;" />
-          </label>
-        </div>
-
-        <!-- Preview danh sách ảnh đã tải lên / chụp -->
-        <div *ngIf="returnUploadedImages.length > 0" class="return-image-previews">
-          <div *ngFor="let img of returnUploadedImages; let idx = index" class="preview-item">
-            <img [src]="img" alt="Ảnh bằng chứng" class="preview-img" />
-            <button type="button" class="remove-btn" (click)="removeReturnImage(idx)" title="Xóa ảnh">×</button>
+    <!-- Scrollable Body with Sub-Forms List -->
+    <div style="flex: 1; overflow-y: auto; padding: 14px 4px 10px 0;">
+      
+      <div *ngFor="let form of returnSubFormsList; let fIdx = index"
+           style="border: 1.5px solid #E5D9CF; background: #FFFFFF; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+        
+        <!-- Header thông tin SP -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #F3EDE7; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <span style="width: 22px; height: 22px; border-radius: 50%; background: #765337; color: #FFF; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              {{ fIdx + 1 }}
+            </span>
+            <img [src]="form.imageUrl || '/assets/img/furniture-placeholder.svg'"
+                 [alt]="form.productName"
+                 style="width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid #EAE1D7; flex-shrink: 0;" />
+            <div style="min-width: 0;">
+              <div style="font-size: 13.5px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ form.productName }}</div>
+              <div style="font-size: 11.5px; color: #6B7280;" *ngIf="form.variantDescription">{{ form.variantDescription }}</div>
+            </div>
+          </div>
+          <div style="text-align: right; flex-shrink: 0;">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #FAF7F5; color: #5C402A; border: 1px solid #EAE1D7;">
+              Số lượng: <strong>x{{ form.quantity }}</strong>
+            </span>
           </div>
         </div>
-        <p class="upload-hint" *ngIf="returnUploadedImages.length === 0">
-          Chụp ảnh hoặc tải lên từ 1 đến 5 hình ảnh rõ nét về vết lỗi, tem nhãn của sản phẩm.
-        </p>
+
+        <!-- Chọn loại hình: Đổi mới vs Hoàn tiền -->
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #4B5563; display: block; margin-bottom: 6px;">
+            Hình thức xử lý <span style="color: #DC2626;">*</span>
+          </label>
+          <div style="display: flex; gap: 10px;">
+            <label style="flex: 1; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1.5px solid; cursor: pointer; transition: all 0.15s;"
+                   [style.borderColor]="form.returnType === 'EXCHANGE' ? '#765337' : '#E5E7EB'"
+                   [style.backgroundColor]="form.returnType === 'EXCHANGE' ? '#FAF7F5' : '#FFFFFF'">
+              <input type="radio"
+                     [name]="'returnType_' + fIdx"
+                     [value]="'EXCHANGE'"
+                     [(ngModel)]="form.returnType"
+                     style="accent-color: #765337; cursor: pointer;" />
+              <div>
+                <div style="font-size: 12.5px; font-weight: 600; color: #111827;">Đổi sản phẩm mới (EXCHANGE)</div>
+                <div style="font-size: 11px; color: #6B7280;">Đổi sản phẩm chuẩn mới tương đương giao tận nơi</div>
+              </div>
+            </label>
+
+            <label style="flex: 1; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; border: 1.5px solid; cursor: pointer; transition: all 0.15s;"
+                   [style.borderColor]="form.returnType === 'REFUND' ? '#765337' : '#E5E7EB'"
+                   [style.backgroundColor]="form.returnType === 'REFUND' ? '#FAF7F5' : '#FFFFFF'">
+              <input type="radio"
+                     [name]="'returnType_' + fIdx"
+                     [value]="'REFUND'"
+                     [(ngModel)]="form.returnType"
+                     style="accent-color: #765337; cursor: pointer;" />
+              <div>
+                <div style="font-size: 12.5px; font-weight: 600; color: #111827;">Trả hàng & Hoàn tiền (REFUND)</div>
+                <div style="font-size: 11px; color: #6B7280;">Thu hồi sản phẩm và hoàn tiền về tài khoản</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Lý do đổi trả -->
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #4B5563; display: block; margin-bottom: 6px;">
+            Lý do khiếu nại <span style="color: #DC2626;">*</span>
+          </label>
+          <select [(ngModel)]="form.reason"
+                  style="width: 100%; padding: 8px 12px; font-size: 13px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFF; color: #111827; outline: none;">
+            <option *ngFor="let r of returnReasonOptions" [value]="r">{{ r }}</option>
+          </select>
+        </div>
+
+        <!-- Mô tả chi tiết -->
+        <div style="margin-bottom: 12px;">
+          <label style="font-size: 12px; font-weight: 600; color: #4B5563; display: block; margin-bottom: 6px;">
+            Mô tả khuyết tật / hiện trạng cụ thể
+          </label>
+          <textarea [(ngModel)]="form.description"
+                    rows="2"
+                    placeholder="Mô tả cụ thể vết trầy xước, sai lệch kết cấu, lỗi vải hoặc đóng gói..."
+                    style="width: 100%; padding: 8px 12px; font-size: 12.5px; border: 1px solid #D1D5DB; border-radius: 8px; background: #FFF; outline: none; resize: vertical;"></textarea>
+        </div>
+
+        <!-- Bằng chứng ảnh/video (Nén Client-side & Upload Cloudinary HTTPS vĩnh viễn) -->
+        <div>
+          <label style="font-size: 12px; font-weight: 600; color: #4B5563; display: block; margin-bottom: 6px;">
+            Hình ảnh minh chứng lỗi <span style="color: #DC2626;">*</span> (Tối đa 5 ảnh - Tự động nén & lưu bền vững)
+          </label>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <label style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; background: #FAF7F5; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 12px; font-weight: 500; color: #5C402A; cursor: pointer;">
+              <lucide-angular [img]="icons.Image" size="16"></lucide-angular>
+              <span>Chọn ảnh từ máy</span>
+              <input type="file" multiple accept="image/*" (change)="onSubFormImagePicked(form, $event)" style="display: none;" />
+            </label>
+
+            <label style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; background: #FAF7F5; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 12px; font-weight: 500; color: #5C402A; cursor: pointer;">
+              <lucide-angular [img]="icons.Plus" size="16"></lucide-angular>
+              <span>Chụp ảnh camera</span>
+              <input type="file" accept="image/*" capture="environment" (change)="onSubFormImagePicked(form, $event)" style="display: none;" />
+            </label>
+
+            <span *ngIf="form.isUploading" style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #765337; font-weight: 500;">
+              Đang nén & lưu ảnh...
+            </span>
+          </div>
+
+          <!-- Preview thumbnails ảnh đã upload -->
+          <div *ngIf="form.proofImages.length > 0" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <div *ngFor="let img of form.proofImages; let pIdx = index"
+                 style="position: relative; width: 64px; height: 64px; border-radius: 8px; overflow: hidden; border: 1px solid #D1D5DB;">
+              <img [src]="img" alt="Ảnh minh chứng" style="width: 100%; height: 100%; object-fit: cover;" />
+              <button type="button"
+                      (click)="removeSubFormImage(form, pIdx)"
+                      style="position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,0.65); color: #FFF; border: none; font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>
+            </div>
+          </div>
+          <div *ngIf="form.proofImages.length === 0" style="font-size: 11.5px; color: #9CA3AF;">
+            Vui lòng đính kèm ít nhất 1 ảnh rõ nét về lỗi sản phẩm để chuyên viên phê duyệt nhanh chóng.
+          </div>
+        </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn-cancel" (click)="isReturnModalOpen = false">Hủy</button>
-        <button type="submit" class="cta-btn">Gửi yêu cầu đổi trả</button>
+      <!-- Khối Thông tin Hoàn tiền (Chỉ xuất hiện khi có ít nhất 1 sản phẩm chọn REFUND) -->
+      <div *ngIf="hasRefundSubForm()"
+           style="border: 1.5px solid #F59E0B; background: #FFFBEB; border-radius: 12px; padding: 14px; margin-bottom: 12px;">
+        <div style="font-size: 13.5px; font-weight: 700; color: #92400E; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+          <span>Thông tin tài khoản nhận tiền hoàn (Chính sách DCor)</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+          <div>
+            <label style="font-size: 11.5px; font-weight: 600; color: #78350F; display: block; margin-bottom: 4px;">Ngân hàng *</label>
+            <input type="text" [(ngModel)]="refundBankInfo.bankName" placeholder="VD: Vietcombank, MB, Techcombank..."
+                   style="width: 100%; padding: 7px 10px; font-size: 12px; border: 1px solid #FCD34D; border-radius: 6px; background: #FFF;" />
+          </div>
+          <div>
+            <label style="font-size: 11.5px; font-weight: 600; color: #78350F; display: block; margin-bottom: 4px;">Số tài khoản *</label>
+            <input type="text" [(ngModel)]="refundBankInfo.accountNumber" placeholder="Nhập số tài khoản..."
+                   style="width: 100%; padding: 7px 10px; font-size: 12px; border: 1px solid #FCD34D; border-radius: 6px; background: #FFF;" />
+          </div>
+          <div>
+            <label style="font-size: 11.5px; font-weight: 600; color: #78350F; display: block; margin-bottom: 4px;">Tên chủ tài khoản *</label>
+            <input type="text" [(ngModel)]="refundBankInfo.accountHolder" placeholder="VD: NGUYEN VAN A"
+                   style="width: 100%; padding: 7px 10px; font-size: 12px; border: 1px solid #FCD34D; border-radius: 6px; background: #FFF; text-transform: uppercase;" />
+          </div>
+        </div>
       </div>
-    </form>
+
+    </div>
+
+    <!-- Modal Footer Actions -->
+    <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #EAE1D7; padding-top: 14px; flex-shrink: 0;">
+      <div>
+        <button *ngIf="returnSelectableItemsList.length > 1"
+                type="button"
+                (click)="backToSelectItemsModal()"
+                style="padding: 8px 14px; font-size: 12.5px; font-weight: 600; color: #765337; background: #FAF7F5; border: 1px solid #EAE1D7; border-radius: 8px; cursor: pointer;">
+          ← Quay lại chọn sản phẩm
+        </button>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn-cancel" (click)="isReturnModalOpen = false">Đóng</button>
+        <button type="button"
+                class="cta-btn"
+                [disabled]="isSubmittingReturns"
+                (click)="submitBulkReturnRequests()"
+                style="background: #765337; color: #FFF; border: none; padding: 9px 22px; border-radius: 8px; font-weight: 600; font-size: 13.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+          <span *ngIf="isSubmittingReturns">Đang gửi yêu cầu...</span>
+          <span *ngIf="!isSubmittingReturns">Xác nhận gửi {{ returnSubFormsList.length }} yêu cầu đổi trả</span>
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>
 

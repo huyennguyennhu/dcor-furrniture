@@ -154,6 +154,8 @@ const resolveCustomerIdentifiers = async (req: AuthRequest): Promise<{ customerI
 
 export interface CustomerReturnRequest {
   id: string;
+  returnCode?: string;
+  returnType?: string;
   customerId: string;
   orderNumber: string;
   productName: string;
@@ -165,7 +167,7 @@ export interface CustomerReturnRequest {
   reason: string;
   description: string;
   images: string[];
-  status: 'PENDING' | 'PROCESSING' | 'PREPARING' | 'SHIPPED' | 'COMPLETED' | 'REJECTED';
+  status: 'PENDING' | 'APPROVED' | 'RETURNING' | 'RECEIVED' | 'EXCHANGING' | 'REFUNDING' | 'PROCESSING' | 'PREPARING' | 'SHIPPED' | 'COMPLETED' | 'REJECTED' | string;
   statusLabel: string;
   refundAmount?: number;
   createdAt: string;
@@ -1776,6 +1778,90 @@ export const customerController = {
 
       // Lấy từ inMemoryReturns
       const list = inMemoryReturns.filter(r => (customerId && r.customerId === customerId));
+
+      // Lấy dữ liệu đổi trả thực tế từ bảng OrderReturn (PostgreSQL)
+      try {
+        const condParts: string[] = [];
+        if (customerId) condParts.push(`r."customerId" = '${customerId.replace(/'/g, "''")}'`);
+        if (customerPhone) condParts.push(`r."customerPhone" = '${customerPhone.trim().replace(/'/g, "''")}'`);
+
+        if (condParts.length > 0) {
+          const dbReturns: any[] = await prisma.$queryRawUnsafe(`
+            SELECT r.*,
+                   COALESCE(
+                     json_agg(
+                       json_build_object(
+                         'id', i.id,
+                         'orderItemId', i."orderItemId",
+                         'productId', i."productId",
+                         'productName', i."productName",
+                         'productSku', i."productSku",
+                         'variantName', i."variantName",
+                         'quantity', i.quantity,
+                         'unitPrice', i."unitPrice",
+                         'totalPrice', i."totalPrice",
+                         'productImage', i."productImage"
+                       )
+                     ) FILTER (WHERE i.id IS NOT NULL), '[]'
+                   ) as items
+            FROM "OrderReturn" r
+            LEFT JOIN "OrderReturnItem" i ON r.id = i."returnId"
+            WHERE ${condParts.join(' OR ')}
+            GROUP BY r.id
+            ORDER BY r."createdAt" DESC
+          `);
+
+          const statusLabelsMap: Record<string, string> = {
+            'PENDING': 'Chờ duyệt',
+            'APPROVED': 'Đã duyệt (Gửi hàng về)',
+            'RETURNING': 'Đang gửi hàng về DCOR',
+            'RECEIVED': 'DCOR đã nhận & Đang QC',
+            'EXCHANGING': 'Đang chuẩn bị hàng mới',
+            'REFUNDING': 'Đang hoàn tiền',
+            'COMPLETED': 'Hoàn tất đổi trả',
+            'REJECTED': 'Đã từ chối'
+          };
+
+          for (const row of dbReturns) {
+            const item = (row.items && row.items.length > 0) ? row.items[0] : null;
+            let parsedImages: string[] = [];
+            if (Array.isArray(row.proofImages)) {
+              parsedImages = row.proofImages;
+            } else if (typeof row.proofImages === 'string') {
+              try { parsedImages = JSON.parse(row.proofImages); } catch (_) { parsedImages = [row.proofImages]; }
+            }
+
+            list.unshift({
+              id: row.returnCode || row.id,
+              returnCode: row.returnCode || row.id,
+              returnType: row.returnType || 'EXCHANGE',
+              customerId: row.customerId || customerId || 'guest',
+              orderNumber: row.orderNumber,
+              productName: item?.productName || 'Sản phẩm đổi trả DCor',
+              sku: item?.productSku || '',
+              imageUrl: item?.productImage || '',
+              variantDescription: item?.variantName || '',
+              quantity: item?.quantity || 1,
+              price: Number(item?.unitPrice || 0),
+              reason: row.reason || 'Sản phẩm lỗi kỹ thuật',
+              description: row.detailedReason || '',
+              images: parsedImages,
+              status: row.status,
+              statusLabel: statusLabelsMap[row.status] || row.status,
+              refundAmount: Number(row.refundAmount || 0),
+              createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString(),
+              updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : new Date().toISOString()
+            });
+          }
+        }
+      } catch (dbErr: any) {
+        // Nếu bảng OrderReturn chưa tồn tại trong PostgreSQL, kích hoạt khởi tạo ngầm an toàn và không làm gián đoạn request
+        if (dbErr?.code === 'P2010' && (dbErr?.meta?.code === '42P01' || String(dbErr?.message).includes('42P01') || String(dbErr?.message).includes('does not exist'))) {
+          import('../lib/init-order-returns-db').then(m => m.initOrderReturnDatabase()).catch(() => {});
+        } else {
+          console.warn('Lỗi đọc bảng OrderReturn:', dbErr?.message || dbErr);
+        }
+      }
 
       // Đồng thời tìm trong database các đơn có status RETURNED hoặc lịch sử đổi trả
       const returnedOrders = await prisma.order.findMany({

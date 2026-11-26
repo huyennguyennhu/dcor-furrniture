@@ -1158,3 +1158,123 @@ model CustomRequestTimeline {
   @@index([createdAt])
 }
 
+// =========================================================================
+// PHÂN HỆ ĐỔI TRẢ HÀNG (ORDER RETURNS)
+// =========================================================================
+
+enum ReturnStatus {
+  PENDING      // Chờ duyệt yêu cầu
+  APPROVED     // Đã duyệt thu hồi
+  RETURNING    // Đang gửi hàng về DCOR
+  RECEIVED     // DCOR đã nhận hàng & Đang QC
+  EXCHANGING   // Đang xuất đơn đổi mới
+  REFUNDING    // Đang hoàn tiền vào tài khoản
+  COMPLETED    // Hoàn tất đổi trả
+  REJECTED     // Đã từ chối đổi trả
+}
+
+enum ReturnType {
+  EXCHANGE     // Đổi sản phẩm mới
+  REFUND       // Trả hàng hoàn tiền
+}
+
+model OrderReturn {
+  id                     String                @id @default(uuid())
+  returnCode             String                @unique // RMA-202611-xxxx
+  orderId                String
+  orderNumber            String
+  customerId             String?
+  customerName           String
+  customerPhone          String
+  customerEmail          String?
+  customerAddress        String?
+
+  returnType             String                @default("EXCHANGE") // EXCHANGE | REFUND
+  status                 String                @default("PENDING")  // PENDING, APPROVED, etc.
+  reason                 String
+  detailedReason         String?               @db.Text
+  proofImages            Json                  @default("[]")
+
+  // Thông tin điều phối thu hồi (Logistics)
+  shippingProvider       String?
+  trackingNumber         String?
+  driverName             String?
+  driverPhone            String?
+  pickupDate             DateTime?
+  pickupAddress          String?
+
+  // Nghiệm thu QC (Kho)
+  qcPassed               Boolean?
+  qcGrade                String?               // GRADE_A | GRADE_B | GRADE_C
+  qcChecklist            Json?                 @default("{}")
+  qcNotes                String?               @db.Text
+  inspectorName          String?
+
+  // Hoàn tiền (Financials)
+  refundAmount           Decimal?              @default(0) @db.Decimal(15, 2)
+  refundBankName         String?
+  refundAccountNumber    String?
+  refundAccountHolder    String?
+  refundProofImage       String?
+  refundedAt             DateTime?
+
+  // Đơn hàng đổi mới vật lý (Exchange)
+  replacementOrderId     String?
+  replacementOrderNumber String?
+
+  // Từ chối
+  rejectReason           String?               @db.Text
+  rejectedAt             DateTime?
+
+  completedAt            DateTime?
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @default(now()) @updatedAt
+
+  items                  OrderReturnItem[]
+  timelines              OrderReturnTimeline[]
+
+  @@index([returnCode])
+  @@index([orderId])
+  @@index([orderNumber])
+  @@index([customerId])
+  @@index([customerPhone])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderReturnItem {
+  id           String      @id @default(uuid())
+  returnId     String
+  orderReturn  OrderReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderItemId  String
+  productId    String?
+  productName  String
+  productSku   String?
+  variantName  String?
+  quantity     Int         @default(1)
+  unitPrice    Decimal     @default(0) @db.Decimal(15, 2)
+  totalPrice   Decimal     @default(0) @db.Decimal(15, 2)
+  productImage String?
+  createdAt    DateTime    @default(now())
+
+  @@index([returnId])
+  @@index([orderItemId])
+}
+
+model OrderReturnTimeline {
+  id          String      @id @default(uuid())
+  returnId    String
+  orderReturn OrderReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  status      String
+  title       String
+  description String?     @db.Text
+  performedBy String?
+  actorType   String      @default("SYSTEM") // CUSTOMER | STAFF | SYSTEM
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+
+  @@index([returnId])
+  @@index([createdAt])
+}
+
+

@@ -76,6 +76,9 @@ export class OrderReturnDetailComponent implements OnInit, OnDestroy {
   showLightbox: boolean = false;
   activeLightboxImg: string = '';
 
+  // Trạng thái thu gọn/mở rộng Lịch sử Tác nghiệp & Dòng thời gian (Default là thu gọn)
+  isTimelineExpanded: boolean = false;
+
   // Internal Note
   newInternalNote: string = '';
 
